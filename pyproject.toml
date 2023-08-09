@@ -1,0 +1,28 @@
+[project]
+name = "python-vaultwarden"
+version = "0.7.0"
+description = "The Vautlwarden Python Client"
+requires-python = ">=3.11"
+authors = [
+    { name = "Lyonel Martinez", email = "lyonel.martinez@numberly.com" },
+    { name = "Mathis Ribet", email = "mathis.ribet@numberly.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP",
+]
+dependencies = [
+    "bitwardentools==1.0.55",
+    "httpx==0.24.1",
+]
+
+[tool.commitizen]
+version = "0.7.0"
+version_files = [
+    "pyproject.toml:version",
+    "vaultwarden/__version__.py",
+]

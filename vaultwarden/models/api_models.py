@@ -21,7 +21,10 @@ class ApiToken:
             return True
         return False
 
-    def refresh(self, token, ):
+    def refresh(
+        self,
+        token,
+    ):
         self.token["access_token"] = token["access_token"]
         self.token["expires_in"] = token["expires_in"]
         self.expires = time.time() + token["expires_in"]

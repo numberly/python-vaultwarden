@@ -9,11 +9,23 @@ from httpx import Client, Response, HTTPError
 from ..models.api_models import ApiToken
 from ..models.exception_models import BitwardenException
 from ..utils.logger import logger
-from ..utils.tools import log_raise_for_status, get_collection_id_from_ditcs, get_matching_ids_from_ditcs
+from ..utils.tools import (
+    log_raise_for_status,
+    get_collection_id_from_ditcs,
+    get_matching_ids_from_ditcs,
+)
 
 
 class BitwardenClient:
-    def __init__(self, url: str, email: str, password: str, client_id: str, client_secret: str, device_id: UUID | str):
+    def __init__(
+        self,
+        url: str,
+        email: str,
+        password: str,
+        client_id: str,
+        client_secret: str,
+        device_id: UUID | str,
+    ):
         # if one of the parameters is None, raise an exception
         if not all([url, email, password, client_id, client_secret, device_id]):
             raise BitwardenException("All parameters are required")
@@ -22,8 +34,10 @@ class BitwardenClient:
         self.client_id = client_id
         self.client_secret = client_secret
         self.device_id = device_id
-        self.url = url.strip('/')
-        self._http_client = Client(base_url=f"{self.url}/", event_hooks={"response": [log_raise_for_status]})
+        self.url = url.strip("/")
+        self._http_client = Client(
+            base_url=f"{self.url}/", event_hooks={"response": [log_raise_for_status]}
+        )
         self.api_token: Optional[ApiToken] = None
         self.sync = None
 
@@ -39,7 +53,9 @@ class BitwardenClient:
             "grant_type": "refresh_token",
             "refresh_token": f"{self.api_token.token.get('refresh_token')}",
         }
-        resp = self._http_client.post("identity/connect/token", headers=headers, data=payload)
+        resp = self._http_client.post(
+            "identity/connect/token", headers=headers, data=payload
+        )
         json_resp = resp.json()
 
         self.api_token.refresh(json_resp)
@@ -65,15 +81,22 @@ class BitwardenClient:
             # 21 for "SDK", see https://github.com/bitwarden/server/blob/master/src/Core/Enums/DeviceType.cs
             "deviceType": 21,
             "deviceIdentifier": f"{self.device_id}",
-            "deviceName": "python-vaultwarden"
+            "deviceName": "python-vaultwarden",
         }
-        resp = self._http_client.post("identity/connect/token", headers=headers, data=payload)
+        resp = self._http_client.post(
+            "identity/connect/token", headers=headers, data=payload
+        )
         json_resp = resp.json()
-        master_key = make_master_key(password=self.password, salt=self.email,
-                                     iterations=caseinsentive_key_search(json_resp, "KdfIterations"))
+        master_key = make_master_key(
+            password=self.password,
+            salt=self.email,
+            iterations=caseinsentive_key_search(json_resp, "KdfIterations"),
+        )
         self.api_token = ApiToken(json_resp, master_key, json_resp["expires_in"])
 
-    def _api_request(self, method: Literal["GET", "POST", "DELETE", "PUT"], path: str, **kwargs: Any) -> Response:
+    def _api_request(
+        self, method: Literal["GET", "POST", "DELETE", "PUT"], path: str, **kwargs: Any
+    ) -> Response:
         self._api_login()
         headers = {
             "Authorization": f"Bearer {self.api_token.bearer()}",
@@ -90,14 +113,24 @@ class BitwardenClient:
 
     # Organization Management
     def get_organization_user_details(self, organization_id: str, user_org_id: str):
-        return self._api_request("GET", f"api/organizations/{organization_id}/users/{user_org_id}",
-                                 params={"includeCollections": True, "includeGroups": True}).json()
+        return self._api_request(
+            "GET",
+            f"api/organizations/{organization_id}/users/{user_org_id}",
+            params={"includeCollections": True, "includeGroups": True},
+        ).json()
 
     # Get all users in an organization. Returns a dict with email as key and user details as value.
     # If raw is True, returns the raw json response
     def get_organization_users(self, organization_id: str, raw=False):
-        users = self._api_request("GET", f"api/organizations/{organization_id}/users",
-                                  params={"includeCollections": True, "includeGroups": True}).json().get("Data")
+        users = (
+            self._api_request(
+                "GET",
+                f"api/organizations/{organization_id}/users",
+                params={"includeCollections": True, "includeGroups": True},
+            )
+            .json()
+            .get("Data")
+        )
         if raw:
             return users
         return {u["Email"]: u for u in users}
@@ -145,7 +178,9 @@ class BitwardenClient:
             # Building user list by merging all accesses and choose which collection will not be deleted
             # (based on most users)
             for collection_id in id_list:
-                coll_users = self.get_users_of_collection(organization_id, collection_id)
+                coll_users = self.get_users_of_collection(
+                    organization_id, collection_id
+                )
                 if len(coll_users.values()) >= nb_users:
                     base_id = collection_id
                     nb_users = len(coll_users.values())
@@ -159,7 +194,9 @@ class BitwardenClient:
 
             for collection_id in id_list:
                 # List items inside the current collection and move these items to the chosen collection
-                ciphers = self.get_organizations_collection_items(organization_id, collection_id)
+                ciphers = self.get_organizations_collection_items(
+                    organization_id, collection_id
+                )
                 for cipher in ciphers:
                     cipher_collections = set(cipher.get("CollectionIds"))
                     cipher_collections.remove(collection_id)
@@ -170,14 +207,30 @@ class BitwardenClient:
                 self.delete_collection(organization_id, collection_id)
 
     # Collections users Management
-    def add_collection_to_user(self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str):
-        return self.add_collections_to_user(organization_id, user_org_id, accesses, [coll_id])
+    def add_collection_to_user(
+        self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str
+    ):
+        return self.add_collections_to_user(
+            organization_id, user_org_id, accesses, [coll_id]
+        )
 
-    def add_collections_to_user(self, organization_id: str, user_org_id: str, accesses: dict, coll_ids: List[str]):
+    def add_collections_to_user(
+        self,
+        organization_id: str,
+        user_org_id: str,
+        accesses: dict,
+        coll_ids: List[str],
+    ):
         data = {}
-        coll_list = [{"HidePasswords": False, "Id": collection, "ReadOnly": False} for collection in coll_ids]
+        coll_list = [
+            {"HidePasswords": False, "Id": collection, "ReadOnly": False}
+            for collection in coll_ids
+        ]
         logger.debug("User info | %s", accesses)
-        known_collection = next((item for item in coll_list if item["Id"] not in accesses["Collections"]), False)
+        known_collection = next(
+            (item for item in coll_list if item["Id"] not in accesses["Collections"]),
+            False,
+        )
         if known_collection is False:
             return
         data["collections"] = accesses["Collections"]
@@ -185,44 +238,86 @@ class BitwardenClient:
         data["groups"] = accesses["Groups"]
         data["accessAll"] = accesses["AccessAll"]
         data["type"] = accesses["Type"]
-        return self._api_request("POST", f"api/organizations/{organization_id}/users/{user_org_id}", json=data)
+        return self._api_request(
+            "POST",
+            f"api/organizations/{organization_id}/users/{user_org_id}",
+            json=data,
+        )
 
-    def remove_collection_to_user(self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str):
-        return self.remove_collections_to_user(organization_id, user_org_id, accesses, [coll_id])
+    def remove_collection_to_user(
+        self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str
+    ):
+        return self.remove_collections_to_user(
+            organization_id, user_org_id, accesses, [coll_id]
+        )
 
-    def remove_collections_to_user(self, organization_id: str, user_org_id: str, accesses: dict, coll_ids: List[str]):
+    def remove_collections_to_user(
+        self,
+        organization_id: str,
+        user_org_id: str,
+        accesses: dict,
+        coll_ids: List[str],
+    ):
         data = {}
-        known_collection = next((item for item in accesses["Collections"] if item["Id"] in coll_ids), False)
+        known_collection = next(
+            (item for item in accesses["Collections"] if item["Id"] in coll_ids), False
+        )
         if known_collection is False:
             return
-        data["collections"] = list(filter(lambda i: i['Id'] not in coll_ids, accesses["Collections"]))
+        data["collections"] = list(
+            filter(lambda i: i["Id"] not in coll_ids, accesses["Collections"])
+        )
         data["accessAll"] = accesses["AccessAll"]
         data["groups"] = accesses["Groups"]
         data["type"] = accesses["Type"]
-        return self._api_request("POST", f"api/organizations/{organization_id}/users/{user_org_id}", json=data)
+        return self._api_request(
+            "POST",
+            f"api/organizations/{organization_id}/users/{user_org_id}",
+            json=data,
+        )
 
     # Ciphers Management
     def get_organization_items(self, organization_id, deleted=False):
-        return self._api_request("GET", "api/ciphers/organization-details",
-                                 params={"organizationId": organization_id, "deleted": deleted}).json().get("Data")
+        return (
+            self._api_request(
+                "GET",
+                "api/ciphers/organization-details",
+                params={"organizationId": organization_id, "deleted": deleted},
+            )
+            .json()
+            .get("Data")
+        )
 
     def get_organizations_collection_items(self, organization_id, collections_id):
         ciphers = self.get_organization_items(organization_id)
-        return list(filter(lambda cipher: (collections_id in cipher["CollectionIds"]), ciphers))
+        return list(
+            filter(lambda cipher: (collections_id in cipher["CollectionIds"]), ciphers)
+        )
 
     def change_collections_item(self, item_id, collection_ids):
-        self._api_request("POST", f"api/ciphers/{item_id}/collections", json={"collectionIds": collection_ids})
+        self._api_request(
+            "POST",
+            f"api/ciphers/{item_id}/collections",
+            json={"collectionIds": collection_ids},
+        )
 
     # Collections Management
-    def create_collection(self, org_id, collection_name, collections_names=None, collections_ids=None):
-        if collections_names is not None and collections_names.get(collection_name) is not None:
+    def create_collection(
+        self, org_id, collection_name, collections_names=None, collections_ids=None
+    ):
+        if (
+            collections_names is not None
+            and collections_names.get(collection_name) is not None
+        ):
             return collections_names[collection_name][-1]
         data = {
             "Name": encrypt(2, collection_name, self.get_org_key(org_id)),
             "groups": [],
             "users": [],
         }
-        data = self._api_request("POST", f"api/organizations/{org_id}/collections", json=data).json()
+        data = self._api_request(
+            "POST", f"api/organizations/{org_id}/collections", json=data
+        ).json()
         if data is not None and collections_names is not None:
             if collections_names.get(collection_name) is not None:
                 collections_names[collection_name].append(data)
@@ -258,26 +353,41 @@ class BitwardenClient:
             res.append((coll["Name"], coll))
         return res
 
-    def get_collection_id_or_create(self, org_id, collection_name, collections_names=None, collections_ids=None):
+    def get_collection_id_or_create(
+        self, org_id, collection_name, collections_names=None, collections_ids=None
+    ):
         if collections_names is None or collections_ids is None:
-            collections_names, collections_ids = self.get_organization_collections_dicts(org_id)
+            (
+                collections_names,
+                collections_ids,
+            ) = self.get_organization_collections_dicts(org_id)
         res = get_collection_id_from_ditcs(collections_names, collection_name)
         if res is None:
-            new_coll = self.create_collection(org_id, collection_name, collections_names, collections_ids)
+            new_coll = self.create_collection(
+                org_id, collection_name, collections_names, collections_ids
+            )
             if new_coll is not None:
                 res = new_coll.get("Id")
         return res
 
     def delete_collection(self, organization_id, collection_id):
-        return self._api_request("DELETE", f"api/organizations/{organization_id}/collections/{collection_id}")
+        return self._api_request(
+            "DELETE", f"api/organizations/{organization_id}/collections/{collection_id}"
+        )
 
-    def get_matching_collections_ids_or_create(self, org_id, collection_name, collections_names=None,
-                                               collections_ids=None):
+    def get_matching_collections_ids_or_create(
+        self, org_id, collection_name, collections_names=None, collections_ids=None
+    ):
         if collections_names is None or collections_ids is None:
-            collections_names, collections_ids = self.get_organization_collections_dicts(org_id)
+            (
+                collections_names,
+                collections_ids,
+            ) = self.get_organization_collections_dicts(org_id)
         res = get_matching_ids_from_ditcs(collections_names, collection_name)
         if not res:
-            new_coll = self.create_collection(org_id, collection_name, collections_names, collections_ids)
+            new_coll = self.create_collection(
+                org_id, collection_name, collections_names, collections_ids
+            )
             if new_coll is not None:
                 res = [new_coll.get("Id")]
         return res
@@ -287,14 +397,19 @@ class BitwardenClient:
         return {u["Id"]: u for u in users}
 
     def get_users_of_collection_raw(self, organization_id, collection_id):
-        users = self._api_request("GET",
-                                  f"api/organizations/{organization_id}/collections/{collection_id}/users",
-                                  params={"includeCollections": True, "includeGroups": True}).json()
+        users = self._api_request(
+            "GET",
+            f"api/organizations/{organization_id}/collections/{collection_id}/users",
+            params={"includeCollections": True, "includeGroups": True},
+        ).json()
         return users
 
     def set_users_of_collection(self, organization_id, collection_id, users):
-        self._api_request("PUT", f"api/organizations/{organization_id}/collections/{collection_id}/users",
-                          json=users)
+        self._api_request(
+            "PUT",
+            f"api/organizations/{organization_id}/collections/{collection_id}/users",
+            json=users,
+        )
 
     def get_user_org_accesses(self, user_email, user_organization_ids):
         warn_not_maintain = False
@@ -303,7 +418,7 @@ class BitwardenClient:
             org_users = {}
             try:
                 org_users = self.get_organization_users(org_id)
-            except HTTPError as e:
+            except HTTPError:
                 warn_not_maintain = True
                 continue
             org_user = org_users.get(user_email)
@@ -313,26 +428,38 @@ class BitwardenClient:
         return res, warn_not_maintain
 
     # Invitation
-    def invite_organisation_collection(self, org_id, collection_id, email, access_type=2):
+    def invite_organisation_collection(
+        self, org_id, collection_id, email, access_type=2
+    ):
         new_access = {
             "emails": [email],
             "Groups": [],
-            "Collections": [{"hidePasswords": False, "id": collection_id, "readOnly": False}],
+            "Collections": [
+                {"hidePasswords": False, "id": collection_id, "readOnly": False}
+            ],
             "accessAll": False,
             "type": access_type,
         }
-        return self._api_request("POST", f"api/organizations/{org_id}/users/invite", json=new_access)
+        return self._api_request(
+            "POST", f"api/organizations/{org_id}/users/invite", json=new_access
+        )
 
-    def invite_organisation_collections(self, org_id, collections_id, email, access_type=2):
+    def invite_organisation_collections(
+        self, org_id, collections_id, email, access_type=2
+    ):
         new_access = {
             "emails": [email],
             "Groups": [],
-            "Collections": [{"hidePasswords": False, "id": collection_id, "readOnly": False} for collection_id in
-                            collections_id],
+            "Collections": [
+                {"hidePasswords": False, "id": collection_id, "readOnly": False}
+                for collection_id in collections_id
+            ],
             "accessAll": False,
             "type": access_type,
         }
-        return self._api_request("POST", f"api/organizations/{org_id}/users/invite", json=new_access)
+        return self._api_request(
+            "POST", f"api/organizations/{org_id}/users/invite", json=new_access
+        )
 
     def invite_organisation(self, org_id, user_accesses, email):
         data = {
@@ -340,9 +467,11 @@ class BitwardenClient:
             "Groups": user_accesses["Groups"],
             "collections": user_accesses["Collections"],
             "accessAll": user_accesses["AccessAll"],
-            "type": user_accesses["Type"]
+            "type": user_accesses["Type"],
         }
-        return self._api_request("POST", f"api/organizations/{org_id}/users/invite", json=data)
+        return self._api_request(
+            "POST", f"api/organizations/{org_id}/users/invite", json=data
+        )
 
     # Re-invite a user with the same accesses. Return True if at least one organization has been re-invited
     def invite_with_accesses(self, organizations, email):

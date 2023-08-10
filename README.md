@@ -15,3 +15,8 @@ target user.
 ## Credits
 
 The cryptographic part is handled by the [bitwardentools library](https://github.com/corpusops/bitwardentools).
+
+
+## License
+
+Python-vaultwarden is distributed under the terms of the [Apache](https://spdx.org/licenses/Apache-2.0.html) license.

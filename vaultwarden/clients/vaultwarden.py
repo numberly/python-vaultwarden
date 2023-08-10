@@ -17,8 +17,11 @@ class VaultwardenAdminClient:
         if not url or not admin_secret_token:
             raise VaultwardenAdminException("Missing url or admin_secret_token")
         self.admin_secret_token = admin_secret_token
-        self.url = url.strip('/')
-        self._http_client = Client(base_url=f"{self.url}/admin/", event_hooks={"response": [log_raise_for_status]})
+        self.url = url.strip("/")
+        self._http_client = Client(
+            base_url=f"{self.url}/admin/",
+            event_hooks={"response": [log_raise_for_status]},
+        )
         self._id_mail_pool: Optional[dict[str, str]] = None
         # Preload all users infos
         if preload_users:
@@ -26,9 +29,7 @@ class VaultwardenAdminClient:
 
     def _get_admin_cookie(self) -> Optional[Cookie]:
         """Get the session cookie, required to authenticate requests"""
-        bw_cookies = (
-            c for c in self._http_client.cookies.jar if c.name == "VW_ADMIN"
-        )
+        bw_cookies = (c for c in self._http_client.cookies.jar if c.name == "VW_ADMIN")
         return next(bw_cookies, None)
 
     def _admin_login(self) -> None:
@@ -42,7 +43,7 @@ class VaultwardenAdminClient:
         self._http_client.post("", data={"token": self.admin_secret_token})
 
     def _admin_request(
-            self, method: Literal["GET", "POST"], path: str, **kwargs: Any
+        self, method: Literal["GET", "POST"], path: str, **kwargs: Any
     ) -> Response:
         self._admin_login()
         return self._http_client.request(method, path, **kwargs)  # type: ignore
@@ -111,26 +112,36 @@ class VaultwardenAdminClient:
 
     def reset_account(self, email: str, bitwarden_client: BitwardenClient):
         user: VaultWardenUser = self.get_user(email)
-        accesses, warning = bitwarden_client.get_user_org_accesses(user_email=email,
-                                                                   user_organization_ids=user.get("Organizations"))
+        accesses, warning = bitwarden_client.get_user_org_accesses(
+            user_email=email, user_organization_ids=user.get("Organizations")
+        )
         if warning:
-            check = input("WARNING: A organisation where you where present is not maintain by SOC account\n"
-                          "Press 'yes' if you still want to reset the account")
-            if check != 'yes':
-                logger.warning(f"Cancelling the reset")
+            check = input(
+                "WARNING: A organisation where you where present is not maintain by SOC account\n"
+                "Press 'yes' if you still want to reset the account"
+            )
+            if check != "yes":
+                logger.warning("Cancelling the reset")
                 return
-            logger.warning(f"Doing reset on {email} despite having not complete information on its accesses")
+            logger.warning(
+                f"Doing reset on {email} despite having not complete information on its accesses"
+            )
         self.delete(user.get("Id"))
         bitwarden_client.invite_with_accesses(accesses, user.get("Email"))
         return None
 
-    def transfer_account_rights(self, previous_email: str, new_email: str, bitwarden_client: BitwardenClient):
+    def transfer_account_rights(
+        self, previous_email: str, new_email: str, bitwarden_client: BitwardenClient
+    ):
         res = True
         user: VaultWardenUser = self.get_user(previous_email)
-        accesses, warning = bitwarden_client.get_user_org_accesses(user_email=previous_email,
-                                                                   user_organization_ids=user.get("Organizations"))
+        accesses, warning = bitwarden_client.get_user_org_accesses(
+            user_email=previous_email, user_organization_ids=user.get("Organizations")
+        )
         if warning:
-            logger.warning("A organisation in the rights is not maintain by SOC account")
+            logger.warning(
+                "A organisation in the rights is not maintain by SOC account"
+            )
         if len(accesses) == 0:
             logger.warning("No organisation in the rights")
             res = self.invite(new_email) is not None

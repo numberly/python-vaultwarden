@@ -2,4 +2,4 @@
 
 ### Features
 
-- **opensource**: First version of the open sourced python lib for Vaultwarden 
+- **opensource**: First version of the open sourced python lib for Vaultwarden

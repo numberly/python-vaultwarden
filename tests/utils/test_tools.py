@@ -39,21 +39,22 @@ class TestTools(unittest.TestCase):
 
     def test_get_matching_ids_from_ditcs(self):
         self.assertEqual(
-            get_matching_ids_from_ditcs(self.collections_names, "test"), ["test"]
+            ["test", "test/test", "test/test/test"],
+            get_matching_ids_from_ditcs(self.collections_names, "test"),
         )
         self.assertEqual(
+            ["test/test", "test/test/test"],
             get_matching_ids_from_ditcs(self.collections_names, "test/test"),
-            ["test/test"],
         )
         self.assertEqual(
-            get_matching_ids_from_ditcs(self.collections_names, "test/test/test"),
             ["test/test/test"],
+            get_matching_ids_from_ditcs(self.collections_names, "test/test/test"),
         )
         self.assertEqual(
-            get_matching_ids_from_ditcs(self.collections_names, "test/test/test/test"),
             [],
+            get_matching_ids_from_ditcs(self.collections_names, "test/test/test/test"),
         )
         self.assertEqual(
-            get_matching_ids_from_ditcs(self.collections_names, "test2"),
             ["test2", "test2/test2"],
+            get_matching_ids_from_ditcs(self.collections_names, "test2"),
         )

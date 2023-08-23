@@ -58,4 +58,3 @@ class VaultWardenUser(TypedDict):
     Organizations: list[VaultWardenOrg]
     UserEnabled: bool
     TwoFactorEnabled: bool
-    CreatedAt: str

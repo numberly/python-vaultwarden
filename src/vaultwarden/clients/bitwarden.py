@@ -43,11 +43,17 @@ class BitwardenClient:
             base_url=f"{self.url}/",
             event_hooks={"response": [log_raise_for_status]},
         )
-        self.api_token: Optional[ApiToken] = None
+        self._api_token: Optional[ApiToken] = None
         self.sync = None
 
-    def _get_api_token(self) -> Optional[ApiToken]:
-        return self.api_token
+    @property
+    def api_token(self) -> ApiToken:
+        assert self._api_token is not None
+        return self._api_token
+
+    @api_token.setter
+    def api_token(self, value: ApiToken):
+        self._api_token = value
 
     # refresh api token if expired
     def _refresh_api_token(self) -> None:
@@ -67,11 +73,10 @@ class BitwardenClient:
 
     # login to api
     def _api_login(self) -> None:
-        token = self._get_api_token()
-        if token and not token.is_expired():
+        if self._api_token and not self.api_token.is_expired():
             return
 
-        if token and token.is_expired():
+        if self._api_token and self.api_token.is_expired():
             self._refresh_api_token()
             return
 
@@ -97,7 +102,7 @@ class BitwardenClient:
             salt=self.email,
             iterations=caseinsentive_key_search(json_resp, "KdfIterations"),
         )
-        self.api_token = ApiToken(
+        self._api_token = ApiToken(
             json_resp, master_key, json_resp["expires_in"]
         )
 

@@ -28,7 +28,7 @@ class VaultwardenAdminClient:
             base_url=f"{self.url}/admin/",
             event_hooks={"response": [log_raise_for_status]},
         )
-        self._id_mail_pool: Optional[dict[str, str]] = None
+        self._id_mail_pool: dict[str, str] = {}
         # Preload all users infos
         if preload_users:
             _ = self.get_all_users()
@@ -95,20 +95,20 @@ class VaultwardenAdminClient:
             "POST", f"users/{email}/remove-2fa"
         ).raise_for_status()
 
-    def get_user(self, search: str) -> Any | None:
+    def get_user(self, search: str) -> VaultWardenUser:
         """Search term is either an email in cache or a UUID.
         For textual search, use get_all_resources (expensive)"""
 
         assert isinstance(search, str)
 
-        if self._id_mail_pool is None:
+        if not self._id_mail_pool:
             self.get_all_users()
 
         if search in self._id_mail_pool:
             search = self._id_mail_pool[search]
         elif "@" in search:
             # search is not a UUID (probably an email) but wasn't found in cache
-            return None
+            raise VaultwardenAdminException(f"User {search} not found")
         # else assume it's a UUID
         resp = self._admin_request("GET", f"users/{search}")
         resp.raise_for_status()
@@ -138,7 +138,7 @@ class VaultwardenAdminClient:
             logger.warning(
                 f"Doing reset on {email} despite having not complete information on its accesses"
             )
-        self.delete(user.get("Id"))
+        self.delete(user["Id"])
         bitwarden_client.invite_with_accesses(accesses, user.get("Email"))
         return None
 
@@ -164,5 +164,5 @@ class VaultwardenAdminClient:
         else:
             res = bitwarden_client.invite_with_accesses(accesses, new_email)
         if res:
-            self.set_user_enabled(user.get("Id"), enabled=False)
+            self.set_user_enabled(user["Id"], enabled=False)
         return res

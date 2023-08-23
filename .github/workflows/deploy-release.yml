@@ -3,7 +3,7 @@ name: deploy-release
 on:
   push:
     tags:
-    - '*'
+      - '*'
 
 jobs:
   pypi:

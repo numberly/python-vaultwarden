@@ -1,21 +1,27 @@
 import http
-from http.cookiejar import Cookie
-from typing import Optional, Literal, Any
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
-from httpx import Response, Client, HTTPStatusError
+if TYPE_CHECKING:
+    from http.cookiejar import Cookie
 
-from vaultwarden.clients.bitwarden import BitwardenClient
-from vaultwarden.models.api_models import VaultWardenUser
+from httpx import Client, HTTPStatusError, Response
+
 from vaultwarden.models.exception_models import VaultwardenAdminException
 from vaultwarden.utils.logger import logger
 from vaultwarden.utils.tools import log_raise_for_status
+
+if TYPE_CHECKING:
+    from vaultwarden.clients.bitwarden import BitwardenClient
+    from vaultwarden.models.api_models import VaultWardenUser
 
 
 class VaultwardenAdminClient:
     def __init__(self, url: str, admin_secret_token: str, preload_users: bool):
         # If url or admin_secret_token is None, raise an exception
         if not url or not admin_secret_token:
-            raise VaultwardenAdminException("Missing url or admin_secret_token")
+            raise VaultwardenAdminException(
+                "Missing url or admin_secret_token"
+            )
         self.admin_secret_token = admin_secret_token
         self.url = url.strip("/")
         self._http_client = Client(
@@ -29,7 +35,9 @@ class VaultwardenAdminClient:
 
     def _get_admin_cookie(self) -> Optional[Cookie]:
         """Get the session cookie, required to authenticate requests"""
-        bw_cookies = (c for c in self._http_client.cookies.jar if c.name == "VW_ADMIN")
+        bw_cookies = (
+            c for c in self._http_client.cookies.jar if c.name == "VW_ADMIN"
+        )
         return next(bw_cookies, None)
 
     def _admin_login(self) -> None:
@@ -42,7 +50,9 @@ class VaultwardenAdminClient:
         # Refresh
         self._http_client.post("", data={"token": self.admin_secret_token})
 
-    def _admin_request(self, method: Literal["GET", "POST"], path: str, **kwargs: Any) -> Response:
+    def _admin_request(
+        self, method: Literal["GET", "POST"], path: str, **kwargs: Any
+    ) -> Response:
         self._admin_login()
         return self._http_client.request(method, path, **kwargs)  # type: ignore
 
@@ -81,7 +91,9 @@ class VaultwardenAdminClient:
         user = self.get_user(email)
         if user is None:
             raise VaultwardenAdminException(f"User {email} not found")
-        self._admin_request("POST", f"users/{email}/remove-2fa").raise_for_status()
+        self._admin_request(
+            "POST", f"users/{email}/remove-2fa"
+        ).raise_for_status()
 
     def get_user(self, search: str) -> Any | None:
         """Search term is either an email in cache or a UUID.
@@ -104,7 +116,9 @@ class VaultwardenAdminClient:
         return resp.json()
 
     def get_all_users(self) -> list[VaultWardenUser]:
-        users: list[VaultWardenUser] = self._admin_request("GET", "users").json()
+        users: list[VaultWardenUser] = self._admin_request(
+            "GET", "users"
+        ).json()
         self._fill_id_mail_pool(users)
         return users
 
@@ -129,15 +143,21 @@ class VaultwardenAdminClient:
         return None
 
     def transfer_account_rights(
-        self, previous_email: str, new_email: str, bitwarden_client: BitwardenClient
+        self,
+        previous_email: str,
+        new_email: str,
+        bitwarden_client: BitwardenClient,
     ):
         res = True
         user: VaultWardenUser = self.get_user(previous_email)
         accesses, warning = bitwarden_client.get_user_org_accesses(
-            user_email=previous_email, user_organization_ids=user.get("Organizations")
+            user_email=previous_email,
+            user_organization_ids=user.get("Organizations"),
         )
         if warning:
-            logger.warning("A organisation in the rights is not maintain by SOC account")
+            logger.warning(
+                "A organisation in the rights is not maintain by SOC account"
+            )
         if len(accesses) == 0:
             logger.warning("No organisation in the rights")
             res = self.invite(new_email) is not None

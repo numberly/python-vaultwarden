@@ -4,11 +4,11 @@ from typing import Optional, Literal, Any
 
 from httpx import Response, Client, HTTPStatusError
 
-from .bitwarden import BitwardenClient
-from ..models.api_models import VaultWardenUser
-from ..models.exception_models import VaultwardenAdminException
-from ..utils.logger import logger
-from ..utils.tools import log_raise_for_status
+from vaultwarden.clients.bitwarden import BitwardenClient
+from vaultwarden.models.api_models import VaultWardenUser
+from vaultwarden.models.exception_models import VaultwardenAdminException
+from vaultwarden.utils.logger import logger
+from vaultwarden.utils.tools import log_raise_for_status
 
 
 class VaultwardenAdminClient:
@@ -42,9 +42,7 @@ class VaultwardenAdminClient:
         # Refresh
         self._http_client.post("", data={"token": self.admin_secret_token})
 
-    def _admin_request(
-        self, method: Literal["GET", "POST"], path: str, **kwargs: Any
-    ) -> Response:
+    def _admin_request(self, method: Literal["GET", "POST"], path: str, **kwargs: Any) -> Response:
         self._admin_login()
         return self._http_client.request(method, path, **kwargs)  # type: ignore
 
@@ -139,9 +137,7 @@ class VaultwardenAdminClient:
             user_email=previous_email, user_organization_ids=user.get("Organizations")
         )
         if warning:
-            logger.warning(
-                "A organisation in the rights is not maintain by SOC account"
-            )
+            logger.warning("A organisation in the rights is not maintain by SOC account")
         if len(accesses) == 0:
             logger.warning("No organisation in the rights")
             res = self.invite(new_email) is not None

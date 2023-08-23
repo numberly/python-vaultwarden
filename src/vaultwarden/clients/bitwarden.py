@@ -6,10 +6,10 @@ from bitwardentools import caseinsentive_key_search
 from bitwardentools.crypto import make_master_key, decrypt, encrypt
 from httpx import Client, Response, HTTPError
 
-from ..models.api_models import ApiToken
-from ..models.exception_models import BitwardenException
-from ..utils.logger import logger
-from ..utils.tools import (
+from vaultwarden.models.api_models import ApiToken
+from vaultwarden.models.exception_models import BitwardenException
+from vaultwarden.utils.logger import logger
+from vaultwarden.utils.tools import (
     log_raise_for_status,
     get_collection_id_from_ditcs,
     get_matching_ids_from_ditcs,
@@ -53,9 +53,7 @@ class BitwardenClient:
             "grant_type": "refresh_token",
             "refresh_token": f"{self.api_token.token.get('refresh_token')}",
         }
-        resp = self._http_client.post(
-            "identity/connect/token", headers=headers, data=payload
-        )
+        resp = self._http_client.post("identity/connect/token", headers=headers, data=payload)
         json_resp = resp.json()
 
         self.api_token.refresh(json_resp)
@@ -83,9 +81,7 @@ class BitwardenClient:
             "deviceIdentifier": f"{self.device_id}",
             "deviceName": "python-vaultwarden",
         }
-        resp = self._http_client.post(
-            "identity/connect/token", headers=headers, data=payload
-        )
+        resp = self._http_client.post("identity/connect/token", headers=headers, data=payload)
         json_resp = resp.json()
         master_key = make_master_key(
             password=self.password,
@@ -178,9 +174,7 @@ class BitwardenClient:
             # Building user list by merging all accesses and choose which collection will not be deleted
             # (based on most users)
             for collection_id in id_list:
-                coll_users = self.get_users_of_collection(
-                    organization_id, collection_id
-                )
+                coll_users = self.get_users_of_collection(organization_id, collection_id)
                 if len(coll_users.values()) >= nb_users:
                     base_id = collection_id
                     nb_users = len(coll_users.values())
@@ -194,9 +188,7 @@ class BitwardenClient:
 
             for collection_id in id_list:
                 # List items inside the current collection and move these items to the chosen collection
-                ciphers = self.get_organizations_collection_items(
-                    organization_id, collection_id
-                )
+                ciphers = self.get_organizations_collection_items(organization_id, collection_id)
                 for cipher in ciphers:
                     cipher_collections = set(cipher.get("CollectionIds"))
                     cipher_collections.remove(collection_id)
@@ -210,9 +202,7 @@ class BitwardenClient:
     def add_collection_to_user(
         self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str
     ):
-        return self.add_collections_to_user(
-            organization_id, user_org_id, accesses, [coll_id]
-        )
+        return self.add_collections_to_user(organization_id, user_org_id, accesses, [coll_id])
 
     def add_collections_to_user(
         self,
@@ -247,9 +237,7 @@ class BitwardenClient:
     def remove_collection_to_user(
         self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str
     ):
-        return self.remove_collections_to_user(
-            organization_id, user_org_id, accesses, [coll_id]
-        )
+        return self.remove_collections_to_user(organization_id, user_org_id, accesses, [coll_id])
 
     def remove_collections_to_user(
         self,
@@ -290,9 +278,7 @@ class BitwardenClient:
 
     def get_organizations_collection_items(self, organization_id, collections_id):
         ciphers = self.get_organization_items(organization_id)
-        return list(
-            filter(lambda cipher: (collections_id in cipher["CollectionIds"]), ciphers)
-        )
+        return list(filter(lambda cipher: (collections_id in cipher["CollectionIds"]), ciphers))
 
     def change_collections_item(self, item_id, collection_ids):
         self._api_request(
@@ -305,10 +291,7 @@ class BitwardenClient:
     def create_collection(
         self, org_id, collection_name, collections_names=None, collections_ids=None
     ):
-        if (
-            collections_names is not None
-            and collections_names.get(collection_name) is not None
-        ):
+        if collections_names is not None and collections_names.get(collection_name) is not None:
             return collections_names[collection_name][-1]
         data = {
             "Name": encrypt(2, collection_name, self.get_org_key(org_id)),
@@ -428,15 +411,11 @@ class BitwardenClient:
         return res, warn_not_maintain
 
     # Invitation
-    def invite_organisation_collection(
-        self, org_id, collection_id, email, access_type=2
-    ):
+    def invite_organisation_collection(self, org_id, collection_id, email, access_type=2):
         new_access = {
             "emails": [email],
             "Groups": [],
-            "Collections": [
-                {"hidePasswords": False, "id": collection_id, "readOnly": False}
-            ],
+            "Collections": [{"hidePasswords": False, "id": collection_id, "readOnly": False}],
             "accessAll": False,
             "type": access_type,
         }
@@ -444,9 +423,7 @@ class BitwardenClient:
             "POST", f"api/organizations/{org_id}/users/invite", json=new_access
         )
 
-    def invite_organisation_collections(
-        self, org_id, collections_id, email, access_type=2
-    ):
+    def invite_organisation_collections(self, org_id, collections_id, email, access_type=2):
         new_access = {
             "emails": [email],
             "Groups": [],
@@ -469,9 +446,7 @@ class BitwardenClient:
             "accessAll": user_accesses["AccessAll"],
             "type": user_accesses["Type"],
         }
-        return self._api_request(
-            "POST", f"api/organizations/{org_id}/users/invite", json=data
-        )
+        return self._api_request("POST", f"api/organizations/{org_id}/users/invite", json=data)
 
     # Re-invite a user with the same accesses. Return True if at least one organization has been re-invited
     def invite_with_accesses(self, organizations, email):

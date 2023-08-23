@@ -1,28 +1,143 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "python-vaultwarden"
 version = "0.7.0"
-description = "The Vautlwarden Python Client"
-requires-python = ">=3.11"
+description = "Admin Vautlwarden and Simple Bitwarden Python Client"
 authors = [
     { name = "Lyonel Martinez", email = "lyonel.martinez@numberly.com" },
     { name = "Mathis Ribet", email = "mathis.ribet@numberly.com" },
 ]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/numberly/python-vaultwarden"
+documentation = "https://numberly.github.io/python-vaultwarden/"
+packages = [
+    { include = "vaultwarden", from = "src" },
+]
 classifiers = [
     "Development Status :: 4 - Beta",
-    "Environment :: Web Environment",
     "Intended Audience :: Developers",
+    "Environment :: Web Environment",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Typing :: Typed",
     "Topic :: Internet :: WWW/HTTP",
+    # Include this classifier to prevent accidently publishing private code to PyPI.
+    #   https://pypi.org/classifiers/
+    "Private :: Do Not Upload",
 ]
+requires-python = ">=3.10"
 dependencies = [
-    "bitwardentools==1.0.55",
-    "httpx==0.24.1",
+    "bitwardentools >=1.0.55",
+    "httpx >=0.24.1",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "black >=23.7.0",
+    "commitizen >=3.6.0",
+    "isort >=5.9.3",
+    "mypy >=0.910",
+]
+test = [
+    "pytest~=6.2.5",
+]
+
+[tool.hatch.version]
+path = "src/vaultwarden/__version__.py"
+
+[tool.hatch.build]
+packages = [
+    "src/vaultwarden",
+]
+include = [
+    "/tests",
+]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src/vaultwarden/**/*.py"]
+[tool.hatch.build.targets.wheel]
+packages = [
+    "src/vaultwarden",
+]
+
+[tool.hatch.envs.test]
+dependencies = [
+    "coverage",
+]
+
+[tool.hatch.envs.test.scripts]
+test = "coverage run --source=src/vaultwarden -m unittest discover -p 'test_*.py' tests --top-level-directory ."
+_coverage = ["test", "coverage xml", "coverage report --show-missing"]
+with-coverage = "test"
+[[tool.hatch.envs.test.matrix]]
+python = ["3.10", "3.11"]
+type = ["default"]
+[tool.hatch.envs.test.overrides]
+matrix.type.scripts = [
+    { key = "with-coverage", value = "_coverage", if = ["default"] },
+]
+
+[tool.hatch.envs.types]
+dependencies = [
+    "mypy",
+    "types-PyYAML",
+    "types-setuptools",
+    "typing-extensions",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy src/vaultwarden"
+
+[tool.hatch.envs.style]
+detached = true
+dependencies = [
+    "black",
+    "isort",
+    "flake8",
+    "flake8-type-checking",
+]
+[tool.hatch.envs.style.scripts]
+lint = [
+    "flake8 src/vaultwarden",
+]
+check = [
+    "isort --check-only --diff src/vaultwarden",
+    "black -q --check --diff src/vaultwarden",
+    "lint",
+]
+format = [
+    "isort -q src/vaultwarden",
+    "black -q src/vaultwarden",
+]
+
+
+[tool.black]
+line-length = 99
+target-version = ["py310", "py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+ignore_missing_imports = true
+warn_unreachable = true
+no_implicit_optional = true
+show_error_codes = true
 
 [tool.commitizen]
 version = "0.7.0"
+tag_format = "$version"
+update_changelog_on_bump = true
 version_files = [
-    "pyproject.toml:version",
-    "vaultwarden/__version__.py",
+    "src/vaultwarden/__version__.py",
 ]

@@ -41,17 +41,6 @@ dependencies = [
     "httpx >=0.24.1",
 ]
 
-[project.optional-dependencies]
-dev = [
-    "black >=23.7.0",
-    "commitizen >=3.6.0",
-    "isort >=5.9.3",
-    "mypy >=0.910",
-]
-test = [
-    "pytest~=6.2.5",
-]
-
 [tool.hatch.version]
 path = "src/vaultwarden/__version__.py"
 
@@ -102,23 +91,39 @@ detached = true
 dependencies = [
     "black",
     "isort",
-    "flake8",
-    "flake8-type-checking",
+    "ruff",
 ]
 [tool.hatch.envs.style.scripts]
 lint = [
-    "flake8 src/vaultwarden",
+    "ruff check --fix src/vaultwarden",
 ]
 check = [
     "isort --check-only --diff src/vaultwarden",
     "black -q --check --diff src/vaultwarden",
-    "lint",
+    "ruff check src/vaultwarden",
 ]
 format = [
     "isort -q src/vaultwarden",
     "black -q src/vaultwarden",
+    "lint"
 ]
 
+[tool.ruff]
+# Add "Q" to the list of enabled codes.
+select = ["B", "E", "F", "I", "N", "Q", "RUF", "SIM", "TCH"]
+fixable = ["ALL"]
+src = ["src/vaultwarden", "tests"]
+target-version = "py310"
+line-length = 79
+
+[tool.ruff.flake8-quotes]
+docstring-quotes = "double"
+
+[tool.ruff.flake8-bugbear]
+extend-immutable-calls = ["typer.Argument"]
+
+[tool.ruff.isort]
+force-sort-within-sections = true
 
 [tool.black]
 line-length = 79
@@ -127,7 +132,6 @@ target-version = ["py310", "py311"]
 [tool.isort]
 profile = "black"
 line_length = 80
-
 
 [tool.mypy]
 ignore_missing_imports = true

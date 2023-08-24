@@ -1,10 +1,10 @@
-class BitwardenException(Exception):
+class BitwardenError(Exception):
     """BitwardenClient Exception class"""
 
     pass
 
 
-class VaultwardenAdminException(Exception):
+class VaultwardenAdminError(Exception):
     """VaultwardenAdminClient Exception class"""
 
     pass

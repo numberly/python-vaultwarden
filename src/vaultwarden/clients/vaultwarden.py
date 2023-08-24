@@ -1,27 +1,21 @@
 import http
-from typing import TYPE_CHECKING, Any, Literal, Optional
-
-if TYPE_CHECKING:
-    from http.cookiejar import Cookie
+from http.cookiejar import Cookie
+from typing import Any, Literal, Optional
 
 from httpx import Client, HTTPStatusError, Response
 
-from vaultwarden.models.exception_models import VaultwardenAdminException
+from vaultwarden.clients.bitwarden import BitwardenClient
+from vaultwarden.models.api_models import VaultWardenUser
+from vaultwarden.models.exception_models import VaultwardenAdminError
 from vaultwarden.utils.logger import logger
 from vaultwarden.utils.tools import log_raise_for_status
-
-if TYPE_CHECKING:
-    from vaultwarden.clients.bitwarden import BitwardenClient
-    from vaultwarden.models.api_models import VaultWardenUser
 
 
 class VaultwardenAdminClient:
     def __init__(self, url: str, admin_secret_token: str, preload_users: bool):
         # If url or admin_secret_token is None, raise an exception
         if not url or not admin_secret_token:
-            raise VaultwardenAdminException(
-                "Missing url or admin_secret_token"
-            )
+            raise VaultwardenAdminError("Missing url or admin_secret_token")
         self.admin_secret_token = admin_secret_token
         self.url = url.strip("/")
         self._http_client = Client(
@@ -54,12 +48,13 @@ class VaultwardenAdminClient:
         self, method: Literal["GET", "POST"], path: str, **kwargs: Any
     ) -> Response:
         self._admin_login()
-        return self._http_client.request(method, path, **kwargs)  # type: ignore
+        return self._http_client.request(method, path, **kwargs)
 
     def _fill_id_mail_pool(self, users: list[VaultWardenUser]) -> None:
         """Cache the email->GUID mapping for the given users
 
-        Necessary since Vaultwarden does not offer a search or query-by-email endpoint
+        Necessary since Vaultwarden does not offer a search or
+        query-by-email endpoint
         """
         self._id_mail_pool |= {u["Email"]: u["Id"] for u in users}
 
@@ -90,7 +85,7 @@ class VaultwardenAdminClient:
     def remove_2fa(self, email: str) -> None:
         user = self.get_user(email)
         if user is None:
-            raise VaultwardenAdminException(f"User {email} not found")
+            raise VaultwardenAdminError(f"User {email} not found")
         self._admin_request(
             "POST", f"users/{email}/remove-2fa"
         ).raise_for_status()
@@ -107,8 +102,8 @@ class VaultwardenAdminClient:
         if search in self._id_mail_pool:
             search = self._id_mail_pool[search]
         elif "@" in search:
-            # search is not a UUID (probably an email) but wasn't found in cache
-            raise VaultwardenAdminException(f"User {search} not found")
+            # search is not UUID (probably an email) but wasn't found in cache
+            raise VaultwardenAdminError(f"User {search} not found")
         # else assume it's a UUID
         resp = self._admin_request("GET", f"users/{search}")
         resp.raise_for_status()
@@ -129,14 +124,16 @@ class VaultwardenAdminClient:
         )
         if warning:
             check = input(
-                "WARNING: A organisation where you where present is not maintain by SOC account\n"
+                "WARNING: A organisation where you where present is not "
+                "maintain by SOC account\n"
                 "Press 'yes' if you still want to reset the account"
             )
             if check != "yes":
                 logger.warning("Cancelling the reset")
                 return
             logger.warning(
-                f"Doing reset on {email} despite having not complete information on its accesses"
+                f"Doing reset on {email} despite having not complete "
+                f"information on its accesses"
             )
         self.delete(user["Id"])
         bitwarden_client.invite_with_accesses(accesses, user.get("Email"))

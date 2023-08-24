@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "python-vaultwarden"
 version = "0.7.0"
-description = "Admin Vautlwarden and Simple Bitwarden Python Client"
+description = "Admin Vaultwarden and Simple Bitwarden Python Client"
 authors = [
     { name = "Lyonel Martinez", email = "lyonel.martinez@numberly.com" },
     { name = "Mathis Ribet", email = "mathis.ribet@numberly.com" },
 ]
-license = "MIT"
+license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/numberly/python-vaultwarden"
 documentation = "https://numberly.github.io/python-vaultwarden/"
@@ -21,7 +21,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Environment :: Web Environment",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Intended Audience :: Developers",
     "Programming Language :: Python",

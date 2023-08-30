@@ -2,7 +2,6 @@
 
 [![PyPI Version][pypi-v-image]][pypi-v-link]
 [![Build Status][GHAction-image]][GHAction-link]
-[![Coverage Status][codecov-image]][codecov-link]
 
 A python library for vaultwarden
 
@@ -22,10 +21,6 @@ The cryptographic part is handled by the [bitwardentools library](https://github
 
 
 <!-- Badges -->
-
-[codecov-image]: https://codecov.io/github/numberly/python-vaultwarden/coverage.svg?branch=main
-
-[codecov-link]: https://codecov.io/github/numberly/python-vaultwarden?branch=main
 
 [pypi-v-image]: https://img.shields.io/pypi/v/python-vaultwarden.svg
 

@@ -22,14 +22,6 @@ jobs:
       - name: Run tests
         run: |
           hatch run +py=${{ matrix.py || matrix.python-version }} test:with-coverage
-      - name: Upload Codecov Results
-        if: success()
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: ${{ matrix.os }}/${{ matrix.python-version }}
-          fail_ci_if_error: false
 
   lint:
     runs-on: ubuntu-latest

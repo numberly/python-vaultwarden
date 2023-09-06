@@ -1,5 +1,3 @@
-from httpx import Response
-
 from .logger import logger
 
 
@@ -17,9 +15,11 @@ def get_matching_ids_from_ditcs(collections_names, collection_name):
     return res
 
 
-def log_raise_for_status(response: Response) -> None:
+def log_raise_for_status(response) -> None:
     if response.status_code == 403:
-        logger.error("Error: 403 Forbidden. Given Account has not access the data.")
+        logger.error(
+            "Error: 403 Forbidden. Given Account has not access the data."
+        )
     if response.status_code >= 400:
         logger.error(f"Error: {response.status_code}")
     response.raise_for_status()

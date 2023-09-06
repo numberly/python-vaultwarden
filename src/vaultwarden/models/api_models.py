@@ -1,5 +1,5 @@
 import time
-from typing import TypedDict, Literal
+from typing import Literal, TypedDict
 
 from bitwardentools.crypto import decrypt
 
@@ -12,7 +12,9 @@ class ApiToken:
         self.token = token
         self.expires = time.time() + expires_in
         self.token["user_key"] = decrypt(token["Key"], master_key)
-        self.token["orgs_key"] = decrypt(token["PrivateKey"], self.token["user_key"])
+        self.token["orgs_key"] = decrypt(
+            token["PrivateKey"], self.token["user_key"]
+        )
 
     def is_expired(self, now=None):
         if now is None:
@@ -56,4 +58,3 @@ class VaultWardenUser(TypedDict):
     Organizations: list[VaultWardenOrg]
     UserEnabled: bool
     TwoFactorEnabled: bool
-    CreatedAt: str

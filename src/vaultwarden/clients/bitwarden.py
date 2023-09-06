@@ -1,18 +1,18 @@
 # Class Bitwarden client with a httpx client
-from typing import Optional, Literal, Any, List
+from typing import Any, List, Literal, Optional
 from uuid import UUID
 
 from bitwardentools import caseinsentive_key_search
-from bitwardentools.crypto import make_master_key, decrypt, encrypt
-from httpx import Client, Response, HTTPError
+from bitwardentools.crypto import decrypt, encrypt, make_master_key
+from httpx import Client, HTTPError, Response
 
-from ..models.api_models import ApiToken
-from ..models.exception_models import BitwardenException
-from ..utils.logger import logger
-from ..utils.tools import (
-    log_raise_for_status,
+from vaultwarden.models.api_models import ApiToken
+from vaultwarden.models.exception_models import BitwardenError
+from vaultwarden.utils.logger import logger
+from vaultwarden.utils.tools import (
     get_collection_id_from_ditcs,
     get_matching_ids_from_ditcs,
+    log_raise_for_status,
 )
 
 
@@ -27,8 +27,10 @@ class BitwardenClient:
         device_id: UUID | str,
     ):
         # if one of the parameters is None, raise an exception
-        if not all([url, email, password, client_id, client_secret, device_id]):
-            raise BitwardenException("All parameters are required")
+        if not all(
+            [url, email, password, client_id, client_secret, device_id]
+        ):
+            raise BitwardenError("All parameters are required")
         self.email = email
         self.password = password
         self.client_id = client_id
@@ -36,13 +38,20 @@ class BitwardenClient:
         self.device_id = device_id
         self.url = url.strip("/")
         self._http_client = Client(
-            base_url=f"{self.url}/", event_hooks={"response": [log_raise_for_status]}
+            base_url=f"{self.url}/",
+            event_hooks={"response": [log_raise_for_status]},
         )
-        self.api_token: Optional[ApiToken] = None
+        self._api_token: Optional[ApiToken] = None
         self.sync = None
 
-    def _get_api_token(self) -> Optional[ApiToken]:
-        return self.api_token
+    @property
+    def api_token(self) -> ApiToken:
+        assert self._api_token is not None
+        return self._api_token
+
+    @api_token.setter
+    def api_token(self, value: ApiToken):
+        self._api_token = value
 
     # refresh api token if expired
     def _refresh_api_token(self) -> None:
@@ -62,11 +71,10 @@ class BitwardenClient:
 
     # login to api
     def _api_login(self) -> None:
-        token = self._get_api_token()
-        if token and not token.is_expired():
+        if self._api_token and not self.api_token.is_expired():
             return
 
-        if token and token.is_expired():
+        if self._api_token and self.api_token.is_expired():
             self._refresh_api_token()
             return
 
@@ -92,10 +100,15 @@ class BitwardenClient:
             salt=self.email,
             iterations=caseinsentive_key_search(json_resp, "KdfIterations"),
         )
-        self.api_token = ApiToken(json_resp, master_key, json_resp["expires_in"])
+        self._api_token = ApiToken(
+            json_resp, master_key, json_resp["expires_in"]
+        )
 
     def _api_request(
-        self, method: Literal["GET", "POST", "DELETE", "PUT"], path: str, **kwargs: Any
+        self,
+        method: Literal["GET", "POST", "DELETE", "PUT"],
+        path: str,
+        **kwargs: Any,
     ) -> Response:
         self._api_login()
         headers = {
@@ -103,7 +116,9 @@ class BitwardenClient:
             "content-type": "application/json; charset=utf-8",
             "Accept": "*/*",
         }
-        return self._http_client.request(method, path, headers=headers, **kwargs)
+        return self._http_client.request(
+            method, path, headers=headers, **kwargs
+        )
 
     def get_sync(self):
         if self.sync is None:
@@ -112,15 +127,17 @@ class BitwardenClient:
         return self.sync
 
     # Organization Management
-    def get_organization_user_details(self, organization_id: str, user_org_id: str):
+    def get_organization_user_details(
+        self, organization_id: str, user_org_id: str
+    ):
         return self._api_request(
             "GET",
             f"api/organizations/{organization_id}/users/{user_org_id}",
             params={"includeCollections": True, "includeGroups": True},
         ).json()
 
-    # Get all users in an organization. Returns a dict with email as key and user details as value.
-    # If raw is True, returns the raw json response
+    # Get all users in an organization. Returns a dict with email as key and
+    # user details as value. If raw is True, returns the raw json response
     def get_organization_users(self, organization_id: str, raw=False):
         users = (
             self._api_request(
@@ -139,10 +156,10 @@ class BitwardenClient:
         sync = self.get_sync()
         profile = sync.get("Profile", None)
         if profile is None:
-            raise BitwardenException("No profile in Sync")
+            raise BitwardenError("No profile in Sync")
         orgs = profile.get("Organizations", None)
         if orgs is None:
-            raise BitwardenException("No Organizations in Sync[Profile]")
+            raise BitwardenError("No Organizations in Sync[Profile]")
         raw_key = None
         for org in orgs:
             if org.get("Id") == org_id:
@@ -150,18 +167,19 @@ class BitwardenClient:
                 break
         if raw_key is not None:
             return decrypt(raw_key, self.api_token.get("orgs_key"))
-        raise BitwardenException(f"No Organizations `{org_id}` found")
+        raise BitwardenError(f"No Organizations `{org_id}` found")
 
     def deduplicate_collection(self, organization_id):
         """
-        Deduplicate collections with the same name in a given org, by moving users
-        and secrets into the bigger (by user count) collection
+        Deduplicate collections with the same name in a given org, by moving
+        users and secrets into the bigger (by user count) collection
         """
         collections = self.get_organization_collections(organization_id)
 
         seen_names = {}
         duplicated = {}
-        # List duplicated collections, indexed on the name, referencing a list of collections id
+        # List duplicated collections, indexed on the name, referencing a
+        # list of collections id
         for name, collection in collections:
             if seen_names.get(name) is None:
                 seen_names[name] = collection["Id"]
@@ -175,8 +193,8 @@ class BitwardenClient:
             base_id = None
             nb_users = 0
             users = {}
-            # Building user list by merging all accesses and choose which collection will not be deleted
-            # (based on most users)
+            # Building user list by merging all accesses and choose which
+            # collection will not be deleted (based on most users)
             for collection_id in id_list:
                 coll_users = self.get_users_of_collection(
                     organization_id, collection_id
@@ -188,12 +206,14 @@ class BitwardenClient:
 
             users_list = list(users.values())
 
-            # Removing the chosen collection from the list of collection to delete
+            # Removing the chosen collection from the list of collection to
+            # delete
             id_list.remove(base_id)
             self.set_users_of_collection(organization_id, base_id, users_list)
 
             for collection_id in id_list:
-                # List items inside the current collection and move these items to the chosen collection
+                # List items inside the current collection and move these
+                # items to the chosen collection
                 ciphers = self.get_organizations_collection_items(
                     organization_id, collection_id
                 )
@@ -201,14 +221,20 @@ class BitwardenClient:
                     cipher_collections = set(cipher.get("CollectionIds"))
                     cipher_collections.remove(collection_id)
                     cipher_collections.add(base_id)
-                    self.change_collections_item(cipher["Id"], list(cipher_collections))
+                    self.change_collections_item(
+                        cipher["Id"], list(cipher_collections)
+                    )
 
                 # delete the current collection
                 self.delete_collection(organization_id, collection_id)
 
     # Collections users Management
     def add_collection_to_user(
-        self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str
+        self,
+        organization_id: str,
+        user_org_id: str,
+        accesses: dict,
+        coll_id: str,
     ):
         return self.add_collections_to_user(
             organization_id, user_org_id, accesses, [coll_id]
@@ -228,7 +254,11 @@ class BitwardenClient:
         ]
         logger.debug("User info | %s", accesses)
         known_collection = next(
-            (item for item in coll_list if item["Id"] not in accesses["Collections"]),
+            (
+                item
+                for item in coll_list
+                if item["Id"] not in accesses["Collections"]
+            ),
             False,
         )
         if known_collection is False:
@@ -245,7 +275,11 @@ class BitwardenClient:
         )
 
     def remove_collection_to_user(
-        self, organization_id: str, user_org_id: str, accesses: dict, coll_id: str
+        self,
+        organization_id: str,
+        user_org_id: str,
+        accesses: dict,
+        coll_id: str,
     ):
         return self.remove_collections_to_user(
             organization_id, user_org_id, accesses, [coll_id]
@@ -260,7 +294,12 @@ class BitwardenClient:
     ):
         data = {}
         known_collection = next(
-            (item for item in accesses["Collections"] if item["Id"] in coll_ids), False
+            (
+                item
+                for item in accesses["Collections"]
+                if item["Id"] in coll_ids
+            ),
+            False,
         )
         if known_collection is False:
             return
@@ -288,10 +327,15 @@ class BitwardenClient:
             .get("Data")
         )
 
-    def get_organizations_collection_items(self, organization_id, collections_id):
+    def get_organizations_collection_items(
+        self, organization_id, collections_id
+    ):
         ciphers = self.get_organization_items(organization_id)
         return list(
-            filter(lambda cipher: (collections_id in cipher["CollectionIds"]), ciphers)
+            filter(
+                lambda cipher: (collections_id in cipher["CollectionIds"]),
+                ciphers,
+            )
         )
 
     def change_collections_item(self, item_id, collection_ids):
@@ -303,7 +347,11 @@ class BitwardenClient:
 
     # Collections Management
     def create_collection(
-        self, org_id, collection_name, collections_names=None, collections_ids=None
+        self,
+        org_id,
+        collection_name,
+        collections_names=None,
+        collections_ids=None,
     ):
         if (
             collections_names is not None
@@ -326,9 +374,12 @@ class BitwardenClient:
             collections_ids[data["Id"]] = data
         return data
 
-    # Return 2 dicts: one indexed by name, one indexed by id, both containing the collections details
+    # Return 2 dicts: one indexed by name, one indexed by id,
+    # both containing the collections details
     def get_organization_collections_dicts(self, org_id):
-        resp = self._api_request("GET", f"api/organizations/{org_id}/collections")
+        resp = self._api_request(
+            "GET", f"api/organizations/{org_id}/collections"
+        )
         colls = resp.json().get("Data")
         res_by_name = {}
         res_by_id = {}
@@ -344,7 +395,9 @@ class BitwardenClient:
 
     # Return a list of tuple (collection_name, collection_details)
     def get_organization_collections(self, org_id):
-        resp = self._api_request("GET", f"api/organizations/{org_id}/collections")
+        resp = self._api_request(
+            "GET", f"api/organizations/{org_id}/collections"
+        )
         colls = resp.json().get("Data")
         res = []
         org_key = self.get_org_key(org_id)
@@ -354,7 +407,11 @@ class BitwardenClient:
         return res
 
     def get_collection_id_or_create(
-        self, org_id, collection_name, collections_names=None, collections_ids=None
+        self,
+        org_id,
+        collection_name,
+        collections_names=None,
+        collections_ids=None,
     ):
         if collections_names is None or collections_ids is None:
             (
@@ -372,11 +429,16 @@ class BitwardenClient:
 
     def delete_collection(self, organization_id, collection_id):
         return self._api_request(
-            "DELETE", f"api/organizations/{organization_id}/collections/{collection_id}"
+            "DELETE",
+            f"api/organizations/{organization_id}/collections/{collection_id}",
         )
 
     def get_matching_collections_ids_or_create(
-        self, org_id, collection_name, collections_names=None, collections_ids=None
+        self,
+        org_id,
+        collection_name,
+        collections_names=None,
+        collections_ids=None,
     ):
         if collections_names is None or collections_ids is None:
             (
@@ -393,7 +455,9 @@ class BitwardenClient:
         return res
 
     def get_users_of_collection(self, organization_id, collection_id):
-        users = self.get_users_of_collection_raw(organization_id, collection_id)
+        users = self.get_users_of_collection_raw(
+            organization_id, collection_id
+        )
         return {u["Id"]: u for u in users}
 
     def get_users_of_collection_raw(self, organization_id, collection_id):
@@ -435,7 +499,11 @@ class BitwardenClient:
             "emails": [email],
             "Groups": [],
             "Collections": [
-                {"hidePasswords": False, "id": collection_id, "readOnly": False}
+                {
+                    "hidePasswords": False,
+                    "id": collection_id,
+                    "readOnly": False,
+                }
             ],
             "accessAll": False,
             "type": access_type,
@@ -451,7 +519,11 @@ class BitwardenClient:
             "emails": [email],
             "Groups": [],
             "Collections": [
-                {"hidePasswords": False, "id": collection_id, "readOnly": False}
+                {
+                    "hidePasswords": False,
+                    "id": collection_id,
+                    "readOnly": False,
+                }
                 for collection_id in collections_id
             ],
             "accessAll": False,
@@ -473,7 +545,8 @@ class BitwardenClient:
             "POST", f"api/organizations/{org_id}/users/invite", json=data
         )
 
-    # Re-invite a user with the same accesses. Return True if at least one organization has been re-invited
+    # Re-invite a user with the same accesses. Return True if at least one
+    # organization has been re-invited
     def invite_with_accesses(self, organizations, email):
         logger.info("Re-invite with accesses")
         for org_id, accesses in organizations.items():

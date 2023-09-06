@@ -1,5 +1,8 @@
 # python-vaultwarden
 
+[![PyPI Version][pypi-v-image]][pypi-v-link]
+[![Build Status][GHAction-image]][GHAction-link]
+
 A python library for vaultwarden
 
 ## Clients
@@ -16,6 +19,23 @@ target user.
 
 The cryptographic part is handled by the [bitwardentools library](https://github.com/corpusops/bitwardentools).
 
+
+<!-- Badges -->
+
+[pypi-v-image]: https://img.shields.io/pypi/v/python-vaultwarden.svg
+
+[pypi-v-link]: https://pypi.org/project/python-vaultwarden/
+
+[GHAction-image]: https://github.com/numberly/python-vaultwarden/workflows/CI/badge.svg?branch=main&event=push
+
+[GHAction-link]: https://github.com/numberly/python-vaultwarden/actions?query=event%3Apush+branch%3Amain
+<!-- Links -->
+
+[Issue]: https://github.com/numberly/python-vaultwarden/issues
+
+[Discussions]: https://github.com/numberly/python-vaultwarden/discussions
+
+[PyPA Code of Conduct]: https://www.pypa.io/en/latest/code-of-conduct/
 
 ## License
 

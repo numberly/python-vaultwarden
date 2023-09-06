@@ -3,13 +3,23 @@
 [![PyPI Version][pypi-v-image]][pypi-v-link]
 [![Build Status][GHAction-image]][GHAction-link]
 
-A python library for vaultwarden
+A python client library for [vaultwarden](https://github.com/dani-garcia/vaultwarden).
+
+## Rationale
+
+While there are numerous [clients for bitwarden](https://bitwarden.com/download/), its low-level Python client libraries ecosystem is not well stuffed yet.
+
+We at [Numberly](https://numberly.com) are strong users (and supporters) of [vaultwarden](https://github.com/dani-garcia/vaultwarden) and needed a way to integrate admin operations into our automation stack.
+
+We took inspiration from [bitwardentools](https://github.com/corpusops/bitwardentools) and leverage from it internally while adding some admin related features so that we can automate vaultwarden administration tasks.
+
+Contributions welcomed!
 
 ## Clients
 
-There are 2 clients:
+There are 2 types of clients:
 
-- One for the vaultwarden admin API, that needs to be authenticated with the admin token
+- One for the vaultwarden admin API, that needs to be authenticated with an admin token.
 - One for the bitwarden API, that needs to be authenticated with the user api keys or user's mail and password.
 
 The `reset_account` and `transfer_account_rights` from the Admin client needs a valid Bitwarden client to re-invite the
@@ -39,4 +49,4 @@ The cryptographic part is handled by the [bitwardentools library](https://github
 
 ## License
 
-Python-vaultwarden is distributed under the terms of the [Apache](https://spdx.org/licenses/Apache-2.0.html) license.
+Python-vaultwarden is distributed under the terms of the [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) license.

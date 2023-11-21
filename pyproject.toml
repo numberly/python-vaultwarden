@@ -34,6 +34,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "pydantic >=2.5.0",
     "bitwardentools >=1.0.55",
     "httpx >=0.24.1",
 ]

@@ -5,15 +5,15 @@
 from __future__ import absolute_import, division, print_function
 
 import base64
-from base64 import b64decode, b64encode
-from enum import IntEnum
 import hashlib
-from hashlib import pbkdf2_hmac, sha256
-from hmac import new as hmac_new
 import re
 import secrets
-from secrets import token_bytes
 import string
+from base64 import b64decode, b64encode
+from enum import IntEnum
+from hashlib import pbkdf2_hmac, sha256
+from hmac import new as hmac_new
+from secrets import token_bytes
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA

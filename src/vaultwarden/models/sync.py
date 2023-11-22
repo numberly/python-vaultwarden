@@ -1,7 +1,7 @@
 import time
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
 from vaultwarden.utils.crypto import decrypt
 

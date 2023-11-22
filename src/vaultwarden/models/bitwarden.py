@@ -341,7 +341,10 @@ class Organization(BitwardenBaseModel):
     def invite(
         self,
         email,
-        collections: list[UUID] | list[UserCollection] | None = None,
+        collections: list[UUID]
+        | list[UserCollection]
+        | list[str]
+        | None = None,
         access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
         default_readonly: bool = False,
@@ -405,7 +408,7 @@ class Organization(BitwardenBaseModel):
         self,
         force_refresh: bool = False,
         mfa: bool | None = None,
-        search: str | None = None,
+        search: str | UUID | None = None,
     ) -> list[OrganizationUserDetails]:
         if self._users is None or force_refresh:
             self._users = self._get_users()
@@ -415,11 +418,10 @@ class Organization(BitwardenBaseModel):
                 user for user in self._users if user.TwoFactorEnabled == mfa
             ]
         if search:
-            res = [
-                user
-                for user in self._users
-                if search == user.Email or search == user.Id
-            ]
+            for user in self._users:
+                if search == user.Email or search == user.Id:
+                    return [user]
+            return []
         return res
 
     def user(self, user_id: UUID) -> OrganizationUserDetails:

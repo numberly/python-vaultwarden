@@ -131,7 +131,7 @@ class UserCollection(CollectionAccess):
 
 class OrganizationCollection(BitwardenBaseModel):
     Id: UUID | None = None
-    OrganizationId: UUID | None = Field(None, validate=True)
+    OrganizationId: UUID | None = Field(None, validate_default=True)
     Name: str
     ExternalId: str | None
 
@@ -324,7 +324,7 @@ class CollectionCipher(BitwardenBaseModel):
 
 
 class Organization(BitwardenBaseModel):
-    Id: UUID | None = Field(None, validate=True)
+    Id: UUID | None = Field(None, validate_default=True)
     Name: str
     Object: str | None
     _collections: list[OrganizationCollection] | None = None

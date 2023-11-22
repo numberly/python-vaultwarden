@@ -25,7 +25,7 @@ class CIPHERS(IntEnum):
     asym = 4
 
 
-CACHE = {}
+CACHE = {}  # type: ignore
 ITERATIONS = 2000000
 ENCODED_CIPHER = {
     CIPHERS.sym: "{typ}.{b64_iv}|{b64_ct}|{b64_digest}",

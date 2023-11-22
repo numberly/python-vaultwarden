@@ -32,18 +32,23 @@ class BitwardenBaseModel(
             return info.context.get("client")
         return v
 
+    @property
+    def api_client(self) -> BitwardenAPIClient:
+        assert self.bitwarden_client is not None
+        return self.bitwarden_client
+
 
 class CipherDetails(BitwardenBaseModel):
     Id: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Type: CipherType
     Name: str
-    CollectionIds: list[UUID] | None = None
+    CollectionIds: list[UUID]
 
     @field_validator("OrganizationId")
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
-        if v is None:
+        if v is None and info.context is not None:
             return info.context.get("parent_id")
         return v
 
@@ -53,7 +58,7 @@ class CipherDetails(BitwardenBaseModel):
             if collection in _current_collections:
                 continue
             self.CollectionIds.append(collection)
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "POST",
             f"api/ciphers/{self.Id}",
             json=self.model_dump(
@@ -67,7 +72,7 @@ class CipherDetails(BitwardenBaseModel):
         self.CollectionIds = [
             coll for coll in self.CollectionIds if coll not in collections
         ]
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "POST",
             f"api/ciphers/{self.Id}",
             json=self.model_dump(
@@ -78,13 +83,11 @@ class CipherDetails(BitwardenBaseModel):
         )
 
     def delete(self):
-        return self.bitwarden_client.api_request(
-            "DELETE", f"api/ciphers/{self.Id}"
-        )
+        return self.api_client.api_request("DELETE", f"api/ciphers/{self.Id}")
 
     def update_collection(self, collections: list[UUID]):
         self.CollectionIds = collections
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "POST",
             f"api/ciphers/{self.Id}",
             json=self.model_dump(
@@ -107,7 +110,7 @@ class CollectionUser(CollectionAccess):
     @field_validator("CollectionId")
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
-        if v is None:
+        if v is None and info.context is not None:
             return info.context.get("parent_id")
         return v
 
@@ -121,27 +124,7 @@ class UserCollection(CollectionAccess):
     @field_validator("UserId")
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
-        if v is None:
-            return info.context.get("parent_id")
-        return v
-
-
-class OrganizationUser(BitwardenBaseModel):
-    Id: UUID | None = None
-    Email: str
-    UserId: UUID | None = None
-    OrganizationId: UUID | None = Field(None, validate_default=True)
-    Status: int
-    Type: OrganizationUserType
-    AccessAll: bool
-    ExternalId: str | None
-    Key: str | None = None
-    ResetPasswordKey: str | None = None
-
-    @field_validator("OrganizationId")
-    @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
-        if v is None:
+        if v is None and info.context is not None:
             return info.context.get("parent_id")
         return v
 
@@ -155,19 +138,19 @@ class OrganizationCollection(BitwardenBaseModel):
     @field_validator("OrganizationId")
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
-        if v is None:
+        if v is None and info.context is not None:
             return info.context.get("parent_id")
         return v
 
     def users(self) -> list[CollectionUser]:
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "GET",
             f"api/organizations/{self.OrganizationId}/collections/{self.Id}/users",
             params={"includeCollections": True, "includeGroups": True},
         )
         return TypeAdapter(list[CollectionUser]).validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.bitwarden_client},
+            context={"parent_id": self.Id, "client": self.api_client},
         )
 
     def set_users(
@@ -178,9 +161,9 @@ class OrganizationCollection(BitwardenBaseModel):
     ):
         users_payload = []
         if users is not None and len(users) > 0:
-            if isinstance(users[0], CollectionUser):
+            if users[0] is CollectionUser:
                 users_payload = [
-                    user.model_dump(
+                    user.model_dump(  # type: ignore
                         exclude={"CollectionId"}, by_alias=True, mode="json"
                     )
                     for user in users
@@ -194,7 +177,7 @@ class OrganizationCollection(BitwardenBaseModel):
                     }
                     for user_id in users
                 ]
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "PUT",
             f"api/organizations/{self.OrganizationId}/collections/{self.Id}/users",
             json=users_payload,
@@ -202,16 +185,33 @@ class OrganizationCollection(BitwardenBaseModel):
 
     # Delete collection
     def delete(self):
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "DELETE",
             f"api/organizations/{self.OrganizationId}/collections/{self.Id}",
         )
 
 
-class OrganizationUserDetails(OrganizationUser):
+class OrganizationUserDetails(BitwardenBaseModel):
+    Id: UUID | None = None
+    Email: str
+    UserId: UUID | None = None
+    OrganizationId: UUID | None = Field(None, validate_default=True)
+    Status: int
+    Type: OrganizationUserType
+    AccessAll: bool
+    ExternalId: str | None
+    Key: str | None = None
+    ResetPasswordKey: str | None = None
     Collections: list[UserCollection]
     Groups: list | None = None
     TwoFactorEnabled: bool
+
+    @field_validator("OrganizationId")
+    @classmethod
+    def set_id(cls, v, info: FieldValidationInfo):
+        if v is None and info.context is not None:
+            return info.context.get("parent_id")
+        return v
 
     def add_collections(self, collections: list[UUID]):
         _current_collections = [coll.CollectionId for coll in self.Collections]
@@ -224,7 +224,7 @@ class OrganizationUserDetails(OrganizationUser):
                 ReadOnly=False,
                 HidePasswords=False,
             )
-            user.bitwarden_client = self.bitwarden_client
+            user.bitwarden_client = self.api_client
             self.Collections.append(user)
         pl = self.model_dump(
             include={
@@ -243,7 +243,7 @@ class OrganizationUserDetails(OrganizationUser):
             mode="json",
         )
         return (
-            self.bitwarden_client.api_request(
+            self.api_client.api_request(
                 "POST",
                 f"api/organizations/{self.OrganizationId}/users/{self.Id}",
                 json=pl,
@@ -274,7 +274,7 @@ class OrganizationUserDetails(OrganizationUser):
             by_alias=True,
             mode="json",
         )
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "POST",
             f"api/organizations/{self.OrganizationId}/users/{self.Id}",
             json=pl,
@@ -283,14 +283,14 @@ class OrganizationUserDetails(OrganizationUser):
     def update_collection(self, collections: list[UUID]):
         self.Collections = [
             UserCollection(
-                CollectionId=coll,
                 UserId=self.Id,
+                Id=coll,
                 ReadOnly=False,
                 HidePasswords=False,
             )
             for coll in collections
         ]
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "POST",
             f"api/organizations/{self.OrganizationId}/users/{self.Id}",
             json=self.model_dump(
@@ -312,7 +312,7 @@ class OrganizationUserDetails(OrganizationUser):
         )
 
     def delete(self):
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "DELETE",
             f"api/organizations/{self.OrganizationId}/users/{self.Id}",
         )
@@ -327,14 +327,14 @@ class Organization(BitwardenBaseModel):
     Id: UUID | None = Field(None, validate=True)
     Name: str
     Object: str | None
-    _collections: list[OrganizationCollection] = None
-    _users: list[OrganizationUserDetails] = None
-    _ciphers: list[CipherDetails] = None
+    _collections: list[OrganizationCollection] | None = None
+    _users: list[OrganizationUserDetails] | None = None
+    _ciphers: list[CipherDetails] | None = None
 
     @field_validator("Id")
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
-        if v is None:
+        if v is None and info.context is not None:
             return info.context.get("parent_id")
         return v
 
@@ -352,15 +352,11 @@ class Organization(BitwardenBaseModel):
     ):
         collections_payload = []
         if collections is not None and len(collections) > 0:
-            if isinstance(collections[0], UserCollection):
-                collections_payload = [
-                    coll.model_dump(exclude={"UserId"}, by_alias=True)
-                    for coll in collections
-                ]
+            if collections is list[UserCollection]:
                 collections_payload = TypeAdapter(
                     list[UserCollection]
                 ).dump_python(
-                    collections,
+                    collections,  # type: ignore
                     mode="json",
                     by_alias=True,
                     exclude={-1: {"UserId"}},
@@ -382,12 +378,12 @@ class Organization(BitwardenBaseModel):
             "Collections": collections_payload,
             "Groups": [],
         }
-        return self.bitwarden_client.api_request(
+        return self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/users/invite", json=payload
         )
 
     def _get_users(self) -> list[OrganizationUserDetails]:
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "GET",
             f"api/organizations/{self.Id}/users",
             params={"includeCollections": True, "includeGroups": True},
@@ -398,7 +394,7 @@ class Organization(BitwardenBaseModel):
                 resp.text,
                 context={
                     "parent_id": self.Id,
-                    "client": self.bitwarden_client,
+                    "client": self.api_client,
                 },
             )
             .Data
@@ -425,23 +421,23 @@ class Organization(BitwardenBaseModel):
         return res
 
     def user(self, user_id: UUID) -> OrganizationUserDetails:
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "GET",
             f"api/organizations/{self.Id}/users/{user_id}",
             params={"includeCollections": True, "includeGroups": True},
         )
         return OrganizationUserDetails.model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.bitwarden_client},
+            context={"parent_id": self.Id, "client": self.api_client},
         )
 
     def _get_collections(self) -> list[OrganizationCollection]:
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "GET", f"api/organizations/{self.Id}/collections"
         )
         res = ResplistBitwarden[OrganizationCollection].model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.bitwarden_client},
+            context={"parent_id": self.Id, "client": self.api_client},
         )
         org_key = self.key()
         # map each collection name to the decrypted name
@@ -465,19 +461,22 @@ class Organization(BitwardenBaseModel):
             "Groups": [],
             "Users": [],
         }
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/collections", json=data
         )
         res = OrganizationCollection.model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.bitwarden_client},
+            context={"parent_id": self.Id, "client": self.api_client},
         )
         res.Name = decrypt(res.Name, org_key).decode("utf-8")
-        self._collections.append(res)
+        if self._collections is not None:
+            self._collections.append(res)
+        else:
+            self._collections = [res]
         return res
 
     def delete_collection(self, collection_id: UUID):
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "DELETE",
             f"api/organizations/{self.Id}/collections/{collection_id}",
         )
@@ -486,20 +485,22 @@ class Organization(BitwardenBaseModel):
 
     def collection(self, name) -> OrganizationCollection | None:
         self.collections()
+        if self._collections is None:
+            return None
         for collection in self._collections:
             if collection.Name == name:
                 return collection
         return None
 
     def _get_ciphers(self) -> list[CipherDetails]:
-        resp = self.bitwarden_client.api_request(
+        resp = self.api_client.api_request(
             "GET",
             "api/ciphers/organization-details",
             params={"organizationId": self.Id},
         )
         res = ResplistBitwarden[CipherDetails].model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.bitwarden_client},
+            context={"parent_id": self.Id, "client": self.api_client},
         )
         org_key = self.key()
         # map each cipher name to the decrypted name
@@ -527,16 +528,14 @@ class Organization(BitwardenBaseModel):
         return self._ciphers
 
     def key(self):
-        sync = self.bitwarden_client.sync()
+        sync = self.api_client.sync()
         raw_key = None
         for org in sync.Profile.Organizations:
             if org.Id == self.Id:
                 raw_key = org.Key
                 break
         if raw_key is not None:
-            return decrypt(
-                raw_key, self.bitwarden_client.connect_token.orgs_key
-            )
+            return decrypt(raw_key, self.api_client.connect_token.orgs_key)
         raise BitwardenError(f"No Organizations `{self.Id}` found")
 
 

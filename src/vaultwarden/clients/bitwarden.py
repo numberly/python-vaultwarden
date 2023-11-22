@@ -35,7 +35,7 @@ class BitwardenAPIClient:
             event_hooks={"response": [log_raise_for_status]},
         )
         self._connect_token: ConnectToken | None = None
-        self._sync = None
+        self._sync: SyncData | None = None
 
     @property
     def connect_token(self) -> ConnectToken | None:
@@ -46,8 +46,11 @@ class BitwardenAPIClient:
         self._connect_token = value
 
     # refresh connect token if expired
-    def _refresh_connect_token(self) -> None:
-        if self.connect_token.refresh_token is None:
+    def _refresh_connect_token(self):
+        if (
+            self.connect_token is None
+            or self.connect_token.refresh_token is None
+        ):
             self._set_connect_token()
             return
         headers = {
@@ -80,6 +83,11 @@ class BitwardenAPIClient:
             "identity/connect/token", headers=headers, data=payload
         )
         self._connect_token = ConnectToken.model_validate_json(resp.text)
+        self._connect_token.master_key = make_master_key(
+            password=self.password,
+            salt=self.email,
+            iterations=self._connect_token.KdfIterations,
+        )
 
     # login to api
     def _api_login(self) -> None:
@@ -89,17 +97,12 @@ class BitwardenAPIClient:
             return
 
         self._set_connect_token()
-        self.connect_token.master_key = make_master_key(
-            password=self.password,
-            salt=self.email,
-            iterations=self._connect_token.KdfIterations,
-        )
 
     def api_request(
         self,
         method: Literal["GET", "POST", "DELETE", "PUT"],
         path: str,
-        **kwargs: any,
+        **kwargs,
     ) -> Response:
         return self._api_request(method, path, **kwargs)
 
@@ -107,9 +110,11 @@ class BitwardenAPIClient:
         self,
         method: Literal["GET", "POST", "DELETE", "PUT"],
         path: str,
-        **kwargs: any,
+        **kwargs,
     ) -> Response:
         self._api_login()
+        if self.connect_token is None:
+            raise BitwardenError("Fail to connect")
         headers = {
             "Authorization": f"Bearer {self.connect_token.access_token}",
             "content-type": "application/json; charset=utf-8",

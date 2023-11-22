@@ -59,7 +59,7 @@ class VaultwardenAdminClient:
         Necessary since Vaultwarden does not offer a search or
         query-by-email endpoint
         """
-        self._id_mail_pool |= {u.Email: u.Id for u in users}
+        self._id_mail_pool |= {u.Email: str(u.Id) for u in users}
 
     # User Management Part
     def invite(self, email: str) -> Optional[VaultWardenUser]:
@@ -147,7 +147,7 @@ class VaultwardenAdminClient:
                 f"Doing reset on {email} despite having not complete "
                 f"information on its accesses"
             )
-        self.delete(user["Id"])
+        self.delete(str(user.Id))
         for org in orgs:
             users_org = org.users(search=email)
             if len(users_org) > 0:
@@ -194,4 +194,4 @@ class VaultwardenAdminClient:
                     access_all=user_details.AccessAll,
                     user_type=user_details.Type,
                 )
-        self.set_user_enabled(user["Id"], enabled=False)
+        self.set_user_enabled(str(user.Id), enabled=False)

@@ -44,7 +44,7 @@ class ConnectToken(BaseModel, extra="allow"):
 
 
 class ProfileOrganization(BaseModel, extra="allow"):
-    Id: UUID | None = Field(None, validate=True)
+    Id: UUID
     Name: str
     Key: str | None = None
     ProviderId: str | None = None

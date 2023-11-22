@@ -1,14 +1,13 @@
-from datetime import datetime
-from typing import TypeVar, Generic, Iterator
+from typing import Generic, TypeVar
 from uuid import UUID
 
-from bitwardentools.crypto import decrypt, encrypt
-from pydantic import BaseModel, TypeAdapter, field_validator, Field
-from pydantic_core.core_schema import ValidationInfo, FieldValidationInfo
+from pydantic import BaseModel, Field, TypeAdapter, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
 
-from vaultwarden.clients.bitwarden import BitwardenClient
+from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.enum import CipherType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
+from vaultwarden.utils.crypto import decrypt, encrypt
 
 # Pydantic models for Bitwarden data structures
 
@@ -22,7 +21,7 @@ class ResplistBitwarden(BaseModel, Generic[T]):
 class BitwardenBaseModel(
     BaseModel, extra="allow", arbitrary_types_allowed=True
 ):
-    bitwarden_client: BitwardenClient | None = Field(
+    bitwarden_client: BitwardenAPIClient | None = Field(
         default=None, validate_default=True, exclude=True
     )
 
@@ -39,7 +38,7 @@ class CipherDetails(BitwardenBaseModel):
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Type: CipherType
     Name: str
-    CollectionIds: list[UUID] | None = []
+    CollectionIds: list[UUID] | None = None
 
     @field_validator("OrganizationId")
     @classmethod
@@ -129,10 +128,11 @@ class UserCollection(CollectionAccess):
 
 class OrganizationUser(BitwardenBaseModel):
     Id: UUID | None = None
+    Email: str
     UserId: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Status: int
-    Type: int
+    Type: OrganizationUserType
     AccessAll: bool
     ExternalId: str | None
     Key: str | None = None
@@ -210,10 +210,8 @@ class OrganizationCollection(BitwardenBaseModel):
 
 class OrganizationUserDetails(OrganizationUser):
     Collections: list[UserCollection]
-    Groups: list = []
+    Groups: list | None = None
     TwoFactorEnabled: bool
-
-    _collections: list[OrganizationCollection] = None
 
     def add_collections(self, collections: list[UUID]):
         _current_collections = [coll.CollectionId for coll in self.Collections]
@@ -330,7 +328,7 @@ class Organization(BitwardenBaseModel):
     Name: str
     Object: str | None
     _collections: list[OrganizationCollection] = None
-    _users: list[OrganizationUser] = None
+    _users: list[OrganizationUserDetails] = None
     _ciphers: list[CipherDetails] = None
 
     @field_validator("Id")
@@ -385,14 +383,14 @@ class Organization(BitwardenBaseModel):
             "POST", f"api/organizations/{self.Id}/users/invite", json=payload
         )
 
-    def _get_users(self) -> list[OrganizationUser]:
+    def _get_users(self) -> list[OrganizationUserDetails]:
         resp = self.bitwarden_client.api_request(
             "GET",
             f"api/organizations/{self.Id}/users",
             params={"includeCollections": True, "includeGroups": True},
         )
         return (
-            ResplistBitwarden[OrganizationUser]
+            ResplistBitwarden[OrganizationUserDetails]
             .model_validate_json(
                 resp.text,
                 context={
@@ -404,17 +402,27 @@ class Organization(BitwardenBaseModel):
         )
 
     def users(
-        self, force_refresh: bool = False, mfa: bool = None
-    ) -> list[OrganizationUser]:
+        self,
+        force_refresh: bool = False,
+        mfa: bool | None = None,
+        search: str | None = None,
+    ) -> list[OrganizationUserDetails]:
         if self._users is None or force_refresh:
             self._users = self._get_users()
+        res = self._users
         if mfa is not None:
-            return [
+            res = [
                 user for user in self._users if user.TwoFactorEnabled == mfa
             ]
-        return self._users
+        if search:
+            res = [
+                user
+                for user in self._users
+                if search == user.Email or search == user.Id
+            ]
+        return res
 
-    def user_details(self, user_id: UUID) -> OrganizationUserDetails:
+    def user(self, user_id: UUID) -> OrganizationUserDetails:
         resp = self.bitwarden_client.api_request(
             "GET",
             f"api/organizations/{self.Id}/users/{user_id}",
@@ -484,7 +492,7 @@ class Organization(BitwardenBaseModel):
     def _get_ciphers(self) -> list[CipherDetails]:
         resp = self.bitwarden_client.api_request(
             "GET",
-            f"api/ciphers/organization-details",
+            "api/ciphers/organization-details",
             params={"organizationId": self.Id},
         )
         res = ResplistBitwarden[CipherDetails].model_validate_json(
@@ -498,7 +506,7 @@ class Organization(BitwardenBaseModel):
         return res.Data
 
     def ciphers(
-        self, collection: UUID = None, force_refresh: bool = False
+        self, collection: UUID | None = None, force_refresh: bool = False
     ) -> list[CipherDetails]:
         """
         Get all ciphers for an organization
@@ -517,38 +525,26 @@ class Organization(BitwardenBaseModel):
         return self._ciphers
 
     def key(self):
-        sync = self.bitwarden_client.get_sync()
-        profile = sync.get("Profile", None)
-        if profile is None:
-            raise BitwardenError("No profile in Sync")
-        orgs = profile.get("Organizations", None)
-        if orgs is None:
-            raise BitwardenError("No Organizations in Sync[Profile]")
+        sync = self.bitwarden_client.sync()
         raw_key = None
-        for org in orgs:
-            if UUID(org.get("Id")) == self.Id:
-                raw_key = org.get("Key")
+        for org in sync.Profile.Organizations:
+            if org.Id == self.Id:
+                raw_key = org.Key
                 break
         if raw_key is not None:
             return decrypt(
-                raw_key, self.bitwarden_client.api_token.get("orgs_key")
+                raw_key, self.bitwarden_client.connect_token.orgs_key
             )
         raise BitwardenError(f"No Organizations `{self.Id}` found")
 
 
-class BitwardenUser(BitwardenBaseModel):
-    AvatarColor: str | None
-    CreatedAt: datetime | None
-    Culture: str
-    Email: str
-    EmailVerified: bool
-    ForcePasswordReset: bool
-    Id: UUID | None = None
-    Key: str
-    MasterPasswordHint: str | None
-    Name: str
-    Object: str | None
-    Organizations: list[OrganizationUser] = []
-    TwoFactorEnabled: bool
-    UserEnabled: bool
-    _Status: int | None = None
+def get_organization(
+    bitwarden_client, organisation_id: UUID | str
+) -> Organization:
+    resp = bitwarden_client.api_request(
+        "GET", f"api/organizations/{organisation_id}"
+    )
+    return Organization.model_validate_json(
+        resp.text,
+        context={"client": bitwarden_client, "parent_id": organisation_id},
+    )

@@ -3,10 +3,13 @@ from http.cookiejar import Cookie
 from typing import Any, Literal, Optional
 
 from httpx import Client, HTTPStatusError, Response
+from pydantic import TypeAdapter
 
-from vaultwarden.clients.bitwarden import BitwardenClient
-from vaultwarden.models.api_models import VaultWardenUser
+from vaultwarden.clients.bitwarden import BitwardenAPIClient
+from vaultwarden.models.bitwarden import get_organization
 from vaultwarden.models.exception_models import VaultwardenAdminError
+from vaultwarden.models.sync import UserProfile
+from vaultwarden.models.vaultwarden import VaultWardenUser
 from vaultwarden.utils.logger import logger
 from vaultwarden.utils.tools import log_raise_for_status
 
@@ -50,13 +53,13 @@ class VaultwardenAdminClient:
         self._admin_login()
         return self._http_client.request(method, path, **kwargs)
 
-    def _fill_id_mail_pool(self, users: list[VaultWardenUser]) -> None:
+    def _fill_id_mail_pool(self, users: list[UserProfile]) -> None:
         """Cache the email->GUID mapping for the given users
 
         Necessary since Vaultwarden does not offer a search or
         query-by-email endpoint
         """
-        self._id_mail_pool |= {u["Email"]: u["Id"] for u in users}
+        self._id_mail_pool |= {u.Email: u.Id for u in users}
 
     # User Management Part
     def invite(self, email: str) -> Optional[VaultWardenUser]:
@@ -90,7 +93,7 @@ class VaultwardenAdminClient:
             "POST", f"users/{email}/remove-2fa"
         ).raise_for_status()
 
-    def get_user(self, search: str) -> VaultWardenUser:
+    def get_user(self, search: str) -> UserProfile:
         """Search term is either an email in cache or a UUID.
         For textual search, use get_all_resources (expensive)"""
 
@@ -106,60 +109,89 @@ class VaultwardenAdminClient:
             raise VaultwardenAdminError(f"User {search} not found")
         # else assume it's a UUID
         resp = self._admin_request("GET", f"users/{search}")
-        resp.raise_for_status()
+        return UserProfile.model_validate_json(resp.text)
 
-        return resp.json()
-
-    def get_all_users(self) -> list[VaultWardenUser]:
-        users: list[VaultWardenUser] = self._admin_request(
-            "GET", "users"
-        ).json()
+    def get_all_users(self) -> list[UserProfile]:
+        resp = self._admin_request("GET", "users")
+        users = TypeAdapter(list[UserProfile]).validate_json(resp.text)
         self._fill_id_mail_pool(users)
         return users
 
-    def reset_account(self, email: str, bitwarden_client: BitwardenClient):
-        user: VaultWardenUser = self.get_user(email)
-        accesses, warning = bitwarden_client.get_user_org_accesses(
-            user_email=email, user_organization_ids=user.get("Organizations")
-        )
+    def reset_account(
+        self, email: str, admin_bitwarden_client: BitwardenAPIClient
+    ):
+        user: UserProfile = self.get_user(email)
+        warning = False
+        orgs = []
+        for profile_org in user.Organizations:
+            try:
+                orgs.append(
+                    get_organization(admin_bitwarden_client, profile_org.Id)
+                )
+            except Exception:
+                logger.warning(
+                    f"Given Bitwarden client has no access to org"
+                    f" '{profile_org.Name}' ({profile_org.Id})"
+                )
+                warning = True
         if warning:
             check = input(
                 "WARNING: A organisation where you where present is not "
                 "maintain by SOC account\n"
-                "Press 'yes' if you still want to reset the account"
+                "Type 'yes' if you still want to reset the account"
             )
             if check != "yes":
-                logger.warning("Cancelling the reset")
+                logger.warning(f"'{check}' != of 'yes' - Cancelling the reset")
                 return
             logger.warning(
                 f"Doing reset on {email} despite having not complete "
                 f"information on its accesses"
             )
         self.delete(user["Id"])
-        bitwarden_client.invite_with_accesses(accesses, user.get("Email"))
+        for org in orgs:
+            users_org = org.users(search=email)
+            if len(users_org) > 0:
+                user_details = users_org[0]
+                org.invite(
+                    email,
+                    collections=user_details.Collections,
+                    access_all=user_details.AccessAll,
+                    user_type=user_details.Type,
+                )
+        if len(orgs) == 0:
+            logger.warning("No organisation in the rights")
+            self.invite(email)
         return None
 
     def transfer_account_rights(
         self,
         previous_email: str,
         new_email: str,
-        bitwarden_client: BitwardenClient,
+        admin_bitwarden_client: BitwardenAPIClient,
     ):
-        res = True
-        user: VaultWardenUser = self.get_user(previous_email)
-        accesses, warning = bitwarden_client.get_user_org_accesses(
-            user_email=previous_email,
-            user_organization_ids=user.get("Organizations"),
-        )
-        if warning:
-            logger.warning(
-                "A organisation in the rights is not maintain by SOC account"
-            )
-        if len(accesses) == 0:
+        user: UserProfile = self.get_user(previous_email)
+        orgs = []
+        for profile_org in user.Organizations:
+            try:
+                orgs.append(
+                    get_organization(admin_bitwarden_client, profile_org.Id)
+                )
+            except Exception:
+                logger.warning(
+                    f"Given Bitwarden client has no access to org "
+                    f"'{profile_org.Name}' ({profile_org.Id})"
+                )
+        if len(orgs) == 0:
             logger.warning("No organisation in the rights")
-            res = self.invite(new_email) is not None
-        else:
-            res = bitwarden_client.invite_with_accesses(accesses, new_email)
-        if res:
-            self.set_user_enabled(user["Id"], enabled=False)
-        return res
+            self.invite(new_email)
+        for org in orgs:
+            users_org = org.users(search=previous_email)
+            if len(users_org) > 0:
+                user_details = users_org[0]
+                org.invite(
+                    new_email,
+                    collections=user_details.Collections,
+                    access_all=user_details.AccessAll,
+                    user_type=user_details.Type,
+                )
+        self.set_user_enabled(user["Id"], enabled=False)

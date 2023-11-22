@@ -1,7 +1,8 @@
 import os
 import unittest
 
-from vaultwarden.clients.bitwarden import BitwardenClient
+from vaultwarden.clients.bitwarden import BitwardenAPIClient
+from vaultwarden.models.bitwarden import get_organization
 
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)
@@ -11,7 +12,7 @@ client_id = os.environ.get("BITWARDEN_CLIENT_ID", None)
 client_secret = os.environ.get("BITWARDEN_CLIENT_SECRET", None)
 device_id = os.environ.get("BITWARDEN_DEVICE_ID", None)
 
-bitwarden = BitwardenClient(
+bitwarden = BitwardenAPIClient(
     url, email, password, client_id, client_secret, device_id
 )
 
@@ -21,7 +22,7 @@ test_organization = os.environ.get("BITWARDEN_TEST_ORGANIZATION", None)
 
 class BitwardenBasic(unittest.TestCase):
     def setUp(self) -> None:
-        self.organization = bitwarden.organization(test_organization)
+        self.organization = get_organization(bitwarden, test_organization)
         self.test_colls_names = self.organization.collections(as_dict=True)
         self.test_colls_ids = self.organization.collections()
         self.test_users = self.organization.users()
@@ -76,7 +77,7 @@ class BitwardenBasic(unittest.TestCase):
 
     def test_add_remove_collection_from_user(self):
         user_org_id = self.test_coll_1_user[0].UserId
-        user_infos = self.organization.user_details(user_org_id)
+        user_infos = self.organization.user(user_org_id)
         coll_1_user = self.test_colls_names.get("1_user")
         user_infos.remove_collections([coll_1_user.Id])
         self.assertEqual(

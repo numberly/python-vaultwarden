@@ -1,17 +1,15 @@
 from typing import Literal
 from uuid import UUID
 
-from bitwardentools import caseinsentive_key_search
-from bitwardentools.crypto import make_master_key
 from httpx import Client, Response
 
-from vaultwarden.models.api_models import ApiToken
-from vaultwarden.models.bitwarden import Organization
 from vaultwarden.models.exception_models import BitwardenError
+from vaultwarden.models.sync import ConnectToken, SyncData
+from vaultwarden.utils.crypto import make_master_key
 from vaultwarden.utils.tools import log_raise_for_status
 
 
-class BitwardenClient:
+class BitwardenAPIClient:
     def __init__(
         self,
         url: str,
@@ -36,43 +34,35 @@ class BitwardenClient:
             base_url=f"{self.url}/",
             event_hooks={"response": [log_raise_for_status]},
         )
-        self._api_token: ApiToken | None = None
-        self.sync = None
+        self._connect_token: ConnectToken | None = None
+        self._sync = None
 
     @property
-    def api_token(self) -> ApiToken:
-        assert self._api_token is not None
-        return self._api_token
+    def connect_token(self) -> ConnectToken | None:
+        return self._connect_token
 
-    @api_token.setter
-    def api_token(self, value: ApiToken):
-        self._api_token = value
+    @connect_token.setter
+    def connect_token(self, value: ConnectToken):
+        self._connect_token = value
 
-    # refresh api token if expired
-    def _refresh_api_token(self) -> None:
+    # refresh connect token if expired
+    def _refresh_connect_token(self) -> None:
+        if self.connect_token.refresh_token is None:
+            self._set_connect_token()
+            return
         headers = {
             "content-type": "application/x-www-form-urlencoded; charset=utf-8",
         }
         payload = {
             "grant_type": "refresh_token",
-            "refresh_token": f"{self.api_token.token.get('refresh_token')}",
+            "refresh_token": self.connect_token.refresh_token,
         }
         resp = self._http_client.post(
             "identity/connect/token", headers=headers, data=payload
         )
-        json_resp = resp.json()
+        self._connect_token = ConnectToken.model_validate_json(resp.text)
 
-        self.api_token.refresh(json_resp)
-
-    # login to api
-    def _api_login(self) -> None:
-        if self._api_token and not self.api_token.is_expired():
-            return
-
-        if self._api_token and self.api_token.is_expired():
-            self._refresh_api_token()
-            return
-
+    def _set_connect_token(self):
         headers = {
             "content-type": "application/x-www-form-urlencoded; charset=utf-8",
         }
@@ -89,14 +79,20 @@ class BitwardenClient:
         resp = self._http_client.post(
             "identity/connect/token", headers=headers, data=payload
         )
-        json_resp = resp.json()
-        master_key = make_master_key(
+        self._connect_token = ConnectToken.model_validate_json(resp.text)
+
+    # login to api
+    def _api_login(self) -> None:
+        if self.connect_token is not None:
+            if self.connect_token.is_expired():
+                self._refresh_connect_token()
+            return
+
+        self._set_connect_token()
+        self.connect_token.master_key = make_master_key(
             password=self.password,
             salt=self.email,
-            iterations=caseinsentive_key_search(json_resp, "KdfIterations"),
-        )
-        self._api_token = ApiToken(
-            json_resp, master_key, json_resp["expires_in"]
+            iterations=self._connect_token.KdfIterations,
         )
 
     def api_request(
@@ -105,15 +101,7 @@ class BitwardenClient:
         path: str,
         **kwargs: any,
     ) -> Response:
-        self._api_login()
-        headers = {
-            "Authorization": f"Bearer {self.api_token.bearer()}",
-            "content-type": "application/json; charset=utf-8",
-            "Accept": "*/*",
-        }
-        return self._http_client.request(
-            method, path, headers=headers, **kwargs
-        )
+        return self._api_request(method, path, **kwargs)
 
     def _api_request(
         self,
@@ -121,16 +109,18 @@ class BitwardenClient:
         path: str,
         **kwargs: any,
     ) -> Response:
-        return self.api_request(method, path, **kwargs)
-
-    def get_sync(self):
-        if self.sync is None:
-            resp = self._api_request("GET", "api/sync")
-            self.sync = resp.json()
-        return self.sync
-
-    def organization(self, organization_id: UUID | str) -> Organization:
-        resp = self._api_request("GET", f"api/organizations/{organization_id}")
-        return Organization.model_validate_json(
-            resp.text, context={"client": self, "parent_id": organization_id}
+        self._api_login()
+        headers = {
+            "Authorization": f"Bearer {self.connect_token.access_token}",
+            "content-type": "application/json; charset=utf-8",
+            "Accept": "*/*",
+        }
+        return self._http_client.request(
+            method, path, headers=headers, **kwargs
         )
+
+    def sync(self, force_refresh: bool = False) -> SyncData:
+        if self._sync is None or force_refresh:
+            resp = self._api_request("GET", "api/sync")
+            self._sync = SyncData.model_validate_json(resp.text)
+        return self._sync

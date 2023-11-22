@@ -20,14 +20,23 @@ Contributions welcomed!
 There are 2 types of clients:
 
 - One for the vaultwarden admin API, that needs to be authenticated with an admin token.
-- One for the bitwarden API, that needs to be authenticated with the user api keys or user's mail and password.
+- One for the bitwarden API, that needs to be authenticated with the user api keys or user's mail and password. An Owner or Admin user is required to perform admin operations.
 
 The `reset_account` and `transfer_account_rights` from the Admin client needs a valid Bitwarden client to re-invite the
 target user.
 
+## TODO
+- [ ] Add tests form Vaultwarden admin client
+- [ ] Rewrite crypto part to remove dependency on bitwardentools and add argon2id support
+- [ ] Support email + password authentication
+- [ ] Support end user operations
+- [ ] Ciphers management support
+- [ ] Many other things I didn't think of yet
+
+
 ## Credits
 
-The cryptographic part is handled by the [bitwardentools library](https://github.com/corpusops/bitwardentools).
+The [crypto part](src/vaultwarden/utils/crypto.py) originates from [bitwardentools](https://github.com/corpusops/bitwardentools).
 
 
 <!-- Badges -->

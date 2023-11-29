@@ -1,6 +1,7 @@
 import http
 from http.cookiejar import Cookie
 from typing import Any, Literal, Optional
+from uuid import UUID
 
 from httpx import Client, HTTPStatusError, Response
 from pydantic import TypeAdapter
@@ -9,12 +10,14 @@ from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
 from vaultwarden.models.exception_models import VaultwardenAdminError
 from vaultwarden.models.sync import UserProfile
-from vaultwarden.models.vaultwarden import VaultWardenUser
-from vaultwarden.utils.logger import logger
-from vaultwarden.utils.tools import log_raise_for_status
+from vaultwarden.utils.logger import log_raise_for_status, logger
 
 
 class VaultwardenAdminClient:
+    _users: list[UserProfile]
+    _users_index: dict[UUID, int]
+    _users_alias: dict[str, UUID]
+
     def __init__(self, url: str, admin_secret_token: str, preload_users: bool):
         # If url or admin_secret_token is None, raise an exception
         if not url or not admin_secret_token:
@@ -25,10 +28,12 @@ class VaultwardenAdminClient:
             base_url=f"{self.url}/admin/",
             event_hooks={"response": [log_raise_for_status]},
         )
-        self._id_mail_pool: dict[str, str] = {}
+        self._users_index = {}
+        self._users_alias = {}
+        self._users = []
         # Preload all users infos
         if preload_users:
-            _ = self.get_all_users()
+            self._load_users()
 
     def _get_admin_cookie(self) -> Optional[Cookie]:
         """Get the session cookie, required to authenticate requests"""
@@ -53,29 +58,75 @@ class VaultwardenAdminClient:
         self._admin_login()
         return self._http_client.request(method, path, **kwargs)
 
-    def _fill_id_mail_pool(self, users: list[UserProfile]) -> None:
-        """Cache the email->GUID mapping for the given users
+    def _load_users(self) -> None:
+        resp = self._admin_request("GET", "users")
+        self._users = TypeAdapter(list[UserProfile]).validate_json(resp.text)
+        self._users_index = {u.Id: i for i, u in enumerate(self._users)}
+        self._users_alias = {u.Email: u.Id for u in self._users}
 
-        Necessary since Vaultwarden does not offer a search or
-        query-by-email endpoint
-        """
-        self._id_mail_pool |= {u.Email: str(u.Id) for u in users}
+    def user(self, email=None, uuid=None, force_refresh=False) -> UserProfile:
+        if email is None and uuid is None:
+            raise VaultwardenAdminError("Missing email or id")
+        if email is not None and uuid is not None:
+            raise VaultwardenAdminError("Both email and id given")
+        if force_refresh or not self._users:
+            self._load_users()
+        res_uuid = uuid
+        if email is not None:
+            res_uuid = self._users_alias.get(email)
+        if res_uuid is None:
+            raise VaultwardenAdminError(f"User '{email}' not found")
+        index = self._users_index.get(res_uuid)
+        if index is None:
+            raise VaultwardenAdminError(f"User '{res_uuid}' not found")
+        return self._users[index]
+
+    def get_user(
+        self, email=None, uuid=None, force_refresh=False
+    ) -> UserProfile | None:
+        try:
+            return self.user(
+                email=email, uuid=uuid, force_refresh=force_refresh
+            )
+        except VaultwardenAdminError:
+            return None
+
+    def users(
+        self, as_email_dict=False, as_uuid_dict=False, force_refresh=False
+    ) -> list[UserProfile] | dict[str, UserProfile] | dict[UUID, UserProfile]:
+        if force_refresh or not self._users:
+            self._load_users()
+        if as_email_dict:
+            return {u.Email: u for u in self._users}
+        if as_uuid_dict:
+            return {u.Id: u for u in self._users}
+        return self._users
 
     # User Management Part
-    def invite(self, email: str) -> Optional[VaultWardenUser]:
+    def invite(self, email: str) -> bool:
+        res = True
         try:
-            resp = self._admin_request("POST", "invite", json={"email": email})
+            self._admin_request("POST", "invite", json={"email": email})
         except HTTPStatusError as e:
-            # User already exists
-            if e.response.status_code == http.HTTPStatus.CONFLICT:
-                return None
-            raise
-        return resp.json()
+            res = e.response.status_code == http.HTTPStatus.CONFLICT
+        if not res:
+            logger.warning(f"Failed to invite {email}")
+        else:
+            self._load_users()
+        return res
 
-    def delete(self, identifier: str) -> None:
+    def delete(self, identifier: str) -> bool:
         logger.info(f"Deleting {identifier} account")
-        resp = self._admin_request("POST", f"users/{identifier}/delete")
-        resp.raise_for_status()
+        res = True
+        try:
+            self._admin_request("POST", f"users/{identifier}/delete")
+        except HTTPStatusError:
+            res = False
+        if not res:
+            logger.warning(f"Failed to delete {identifier}")
+        else:
+            self._load_users()
+        return res
 
     def set_user_enabled(self, identifier: str, enabled: bool) -> None:
         """Disabling a user also deauthorizes all its sessions"""
@@ -85,42 +136,25 @@ class VaultwardenAdminClient:
             resp = self._admin_request("POST", f"users/{identifier}/disable")
         resp.raise_for_status()
 
-    def remove_2fa(self, email: str) -> None:
-        user = self.get_user(email)
+    def remove_2fa(self, uuid=None, email=None) -> bool:
+        user = self.get_user(uuid=uuid, email=email)
         if user is None:
-            raise VaultwardenAdminError(f"User {email} not found")
-        self._admin_request(
-            "POST", f"users/{email}/remove-2fa"
-        ).raise_for_status()
-
-    def get_user(self, search: str) -> UserProfile:
-        """Search term is either an email in cache or a UUID.
-        For textual search, use get_all_resources (expensive)"""
-
-        assert isinstance(search, str)
-
-        if not self._id_mail_pool:
-            self.get_all_users()
-
-        if search in self._id_mail_pool:
-            search = self._id_mail_pool[search]
-        elif "@" in search:
-            # search is not UUID (probably an email) but wasn't found in cache
-            raise VaultwardenAdminError(f"User {search} not found")
-        # else assume it's a UUID
-        resp = self._admin_request("GET", f"users/{search}")
-        return UserProfile.model_validate_json(resp.text)
-
-    def get_all_users(self) -> list[UserProfile]:
-        resp = self._admin_request("GET", "users")
-        users = TypeAdapter(list[UserProfile]).validate_json(resp.text)
-        self._fill_id_mail_pool(users)
-        return users
+            logger.warning(f"User '{uuid}' not found")
+            return False
+        if not user.TwoFactorEnabled:
+            logger.warning(f"User '{uuid}' has no 2FA enabled")
+            return False
+        try:
+            self._admin_request("POST", f"users/{uuid}/remove-2fa")
+        except HTTPStatusError:
+            logger.warning(f"Failed to remove 2FA for {uuid}")
+            return False
+        return True
 
     def reset_account(
         self, email: str, admin_bitwarden_client: BitwardenAPIClient
     ):
-        user: UserProfile = self.get_user(email)
+        user: UserProfile = self.user(email=email)
         warning = False
         orgs = []
         for profile_org in user.Organizations:
@@ -128,7 +162,7 @@ class VaultwardenAdminClient:
                 orgs.append(
                     get_organization(admin_bitwarden_client, profile_org.Id)
                 )
-            except Exception:
+            except HTTPStatusError:
                 logger.warning(
                     f"Given Bitwarden client has no access to org"
                     f" '{profile_org.Name}' ({profile_org.Id})"
@@ -169,7 +203,7 @@ class VaultwardenAdminClient:
         new_email: str,
         admin_bitwarden_client: BitwardenAPIClient,
     ):
-        user: UserProfile = self.get_user(previous_email)
+        user: UserProfile = self.user(email=previous_email)
         orgs = []
         for profile_org in user.Organizations:
             try:

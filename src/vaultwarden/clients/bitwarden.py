@@ -6,7 +6,7 @@ from httpx import Client, Response
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
 from vaultwarden.utils.crypto import make_master_key
-from vaultwarden.utils.tools import log_raise_for_status
+from vaultwarden.utils.logger import log_raise_for_status
 
 
 class BitwardenAPIClient:

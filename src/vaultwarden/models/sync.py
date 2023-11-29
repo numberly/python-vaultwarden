@@ -68,11 +68,12 @@ class ProfileOrganization(BaseModel, extra="allow"):
 
 class UserProfile(BaseModel, extra="allow"):
     AvatarColor: str | None
+    CreatedAt: str | None = None
     Culture: str
     Email: str
     EmailVerified: bool
     ForcePasswordReset: bool
-    Id: UUID | None = None
+    Id: UUID
     Key: str
     MasterPasswordHint: str | None
     Name: str

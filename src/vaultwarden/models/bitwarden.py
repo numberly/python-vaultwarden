@@ -161,7 +161,7 @@ class OrganizationCollection(BitwardenBaseModel):
     ):
         users_payload = []
         if users is not None and len(users) > 0:
-            if users[0] is CollectionUser:
+            if isinstance(users[0], CollectionUser):
                 users_payload = [
                     user.model_dump(  # type: ignore
                         exclude={"CollectionId"}, by_alias=True, mode="json"
@@ -359,7 +359,7 @@ class Organization(BitwardenBaseModel):
                     collections,  # type: ignore
                     mode="json",
                     by_alias=True,
-                    exclude={-1: {"UserId"}},
+                    exclude={"__all__": {"UserId"}},
                 )
             else:
                 collections_payload = [
@@ -378,9 +378,11 @@ class Organization(BitwardenBaseModel):
             "Collections": collections_payload,
             "Groups": [],
         }
-        return self.api_client.api_request(
+        resp = self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/users/invite", json=payload
         )
+        self._users = self._get_users()
+        return resp
 
     def _get_users(self) -> list[OrganizationUserDetails]:
         resp = self.api_client.api_request(
@@ -414,7 +416,7 @@ class Organization(BitwardenBaseModel):
                 user for user in self._users if user.TwoFactorEnabled == mfa
             ]
         if search:
-            for user in self._users:
+            for user in res:
                 if search == user.Email or search == user.Id:
                     return [user]
             return []
@@ -430,6 +432,14 @@ class Organization(BitwardenBaseModel):
             resp.text,
             context={"parent_id": self.Id, "client": self.api_client},
         )
+
+    def user_search(
+        self, email: str, mfa: bool = False, force_refresh: bool = False
+    ) -> OrganizationUserDetails | None:
+        users = self.users(search=email, mfa=mfa, force_refresh=force_refresh)
+        if len(users) == 0:
+            return None
+        return users[0]
 
     def _get_collections(self) -> list[OrganizationCollection]:
         resp = self.api_client.api_request(

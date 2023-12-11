@@ -145,5 +145,6 @@ version = "0.7.0"
 tag_format = "$version"
 update_changelog_on_bump = true
 version_files = [
+    "pyproject.toml",
     "src/vaultwarden/__version__.py",
 ]

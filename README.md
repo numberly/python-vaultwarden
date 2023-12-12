@@ -76,9 +76,6 @@ if my_user:
 
 ```
 
-
-```
-
 ## TODO
 - [ ] Add tests form Vaultwarden admin client
 - [ ] Rewrite crypto part to remove dependency on bitwardentools and add argon2id support
@@ -103,12 +100,6 @@ The [crypto part](src/vaultwarden/utils/crypto.py) originates from [bitwardentoo
 
 [GHAction-link]: https://github.com/numberly/python-vaultwarden/actions?query=event%3Apush+branch%3Amain
 <!-- Links -->
-
-[Issue]: https://github.com/numberly/python-vaultwarden/issues
-
-[Discussions]: https://github.com/numberly/python-vaultwarden/discussions
-
-[PyPA Code of Conduct]: https://www.pypa.io/en/latest/code-of-conduct/
 
 ## License
 

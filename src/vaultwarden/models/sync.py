@@ -80,7 +80,7 @@ class UserProfile(BaseModel, extra="allow"):
     Object: str | None
     Organizations: list[ProfileOrganization] = []
     Premium: bool
-    PrivateKey: str
+    PrivateKey: str | None
     ProviderOrganizations: list = []
     Providers: list = []
     SecurityStamp: str

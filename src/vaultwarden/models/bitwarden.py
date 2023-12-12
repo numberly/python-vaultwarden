@@ -341,10 +341,7 @@ class Organization(BitwardenBaseModel):
     def invite(
         self,
         email,
-        collections: list[UUID]
-        | list[UserCollection]
-        | list[str]
-        | None = None,
+        collections: list[UUID] | list[UserCollection] | list[str] | None,
         access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
         default_readonly: bool = False,

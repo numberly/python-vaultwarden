@@ -68,7 +68,6 @@ class ProfileOrganization(BaseModel, extra="allow"):
 
 class UserProfile(BaseModel, extra="allow"):
     AvatarColor: str | None
-    CreatedAt: str | None = None
     Culture: str
     Email: str
     EmailVerified: bool
@@ -86,6 +85,12 @@ class UserProfile(BaseModel, extra="allow"):
     SecurityStamp: str
     TwoFactorEnabled: bool
     _Status: int | None = None
+
+
+class VaultwardenUser(UserProfile):
+    UserEnabled: bool
+    CreatedAt: str
+    LastActive: str | None = None
 
 
 # TODO: add definition of attribute's types

@@ -9,12 +9,12 @@ from pydantic import TypeAdapter
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
 from vaultwarden.models.exception_models import VaultwardenAdminError
-from vaultwarden.models.sync import UserProfile
+from vaultwarden.models.sync import VaultwardenUser
 from vaultwarden.utils.logger import log_raise_for_status, logger
 
 
 class VaultwardenAdminClient:
-    _users: list[UserProfile]
+    _users: list[VaultwardenUser]
     _users_index: dict[UUID, int]
     _users_alias: dict[str, UUID]
 
@@ -60,11 +60,15 @@ class VaultwardenAdminClient:
 
     def _load_users(self) -> None:
         resp = self._admin_request("GET", "users")
-        self._users = TypeAdapter(list[UserProfile]).validate_json(resp.text)
+        self._users = TypeAdapter(list[VaultwardenUser]).validate_json(
+            resp.text
+        )
         self._users_index = {u.Id: i for i, u in enumerate(self._users)}
         self._users_alias = {u.Email: u.Id for u in self._users}
 
-    def user(self, email=None, uuid=None, force_refresh=False) -> UserProfile:
+    def user(
+        self, email=None, uuid=None, force_refresh=False
+    ) -> VaultwardenUser:
         if email is None and uuid is None:
             raise VaultwardenAdminError("Missing email or id")
         if email is not None and uuid is not None:
@@ -83,7 +87,7 @@ class VaultwardenAdminClient:
 
     def get_user(
         self, email=None, uuid=None, force_refresh=False
-    ) -> UserProfile | None:
+    ) -> VaultwardenUser | None:
         try:
             return self.user(
                 email=email, uuid=uuid, force_refresh=force_refresh
@@ -93,7 +97,11 @@ class VaultwardenAdminClient:
 
     def users(
         self, as_email_dict=False, as_uuid_dict=False, force_refresh=False
-    ) -> list[UserProfile] | dict[str, UserProfile] | dict[UUID, UserProfile]:
+    ) -> (
+        list[VaultwardenUser]
+        | dict[str, VaultwardenUser]
+        | dict[UUID, VaultwardenUser]
+    ):
         if force_refresh or not self._users:
             self._load_users()
         if as_email_dict:
@@ -154,7 +162,7 @@ class VaultwardenAdminClient:
     def reset_account(
         self, email: str, admin_bitwarden_client: BitwardenAPIClient
     ):
-        user: UserProfile = self.user(email=email)
+        user: VaultwardenUser = self.user(email=email)
         warning = False
         orgs = []
         for profile_org in user.Organizations:
@@ -203,7 +211,7 @@ class VaultwardenAdminClient:
         new_email: str,
         admin_bitwarden_client: BitwardenAPIClient,
     ):
-        user: UserProfile = self.user(email=previous_email)
+        user: VaultwardenUser = self.user(email=previous_email)
         orgs = []
         for profile_org in user.Organizations:
             try:

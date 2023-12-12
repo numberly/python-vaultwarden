@@ -8,6 +8,7 @@ from pydantic import TypeAdapter
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
+from vaultwarden.models.enum import VaultwardenUserStatus
 from vaultwarden.models.exception_models import VaultwardenAdminError
 from vaultwarden.models.sync import VaultwardenUser
 from vaultwarden.utils.logger import log_raise_for_status, logger
@@ -96,7 +97,13 @@ class VaultwardenAdminClient:
             return None
 
     def users(
-        self, as_email_dict=False, as_uuid_dict=False, force_refresh=False
+        self,
+        as_email_dict=False,
+        as_uuid_dict=False,
+        force_refresh=False,
+        mfa: bool | None = None,
+        enabled: bool | None = None,
+        exclude_invited: bool = False,
     ) -> (
         list[VaultwardenUser]
         | dict[str, VaultwardenUser]
@@ -104,11 +111,18 @@ class VaultwardenAdminClient:
     ):
         if force_refresh or not self._users:
             self._load_users()
+        res = self._users
+        if mfa is not None:
+            res = [u for u in self._users if u.TwoFactorEnabled == mfa]
+        if enabled is not None:
+            res = [u for u in res if u.UserEnabled == enabled]
+        if exclude_invited:
+            res = [u for u in res if u.Status != VaultwardenUserStatus.Invited]
         if as_email_dict:
-            return {u.Email: u for u in self._users}
+            return {u.Email: u for u in res}
         if as_uuid_dict:
-            return {u.Id: u for u in self._users}
-        return self._users
+            return {u.Id: u for u in res}
+        return res
 
     # User Management Part
     def invite(self, email: str) -> bool:
@@ -136,7 +150,7 @@ class VaultwardenAdminClient:
             self._load_users()
         return res
 
-    def set_user_enabled(self, identifier: str, enabled: bool) -> None:
+    def set_user_enabled(self, identifier: str | UUID, enabled: bool) -> None:
         """Disabling a user also deauthorizes all its sessions"""
         if enabled:
             resp = self._admin_request("POST", f"users/{identifier}/enable")

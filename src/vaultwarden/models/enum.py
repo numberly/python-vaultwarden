@@ -20,3 +20,9 @@ class CipherType(Enum):
     SecureNote = 2
     Card = 3
     Identity = 4
+
+
+class VaultwardenUserStatus(Enum):
+    Enabled = 0
+    Invited = 1
+    Disabled = 2

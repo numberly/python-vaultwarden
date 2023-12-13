@@ -345,7 +345,7 @@ class Organization(BitwardenBaseModel):
         | list[OrganizationCollection]
         | list[UUID]
         | list[str]
-        | None,
+        | None = None,
         access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
         default_readonly: bool = False,
@@ -353,30 +353,35 @@ class Organization(BitwardenBaseModel):
     ):
         collections_payload = []
         if collections is not None and len(collections) > 0:
-            if isinstance(collections[0], UserCollection):
-                collections_payload = TypeAdapter(
-                    list[UserCollection]
-                ).dump_python(
-                    collections,  # type: ignore
-                    mode="json",
-                    by_alias=True,
-                    exclude={"__all__": {"UserId"}},
-                )
-            else:
-                if isinstance(collections[0], OrganizationCollection):
-                    coll_uuids = [str(coll.Id) for coll in collections]
-                elif isinstance(collections[0], UUID):
-                    coll_uuids = [str(coll) for coll in collections]
+            assert collections is not None
+            for coll in collections:
+                if isinstance(coll, UserCollection):
+                    assert isinstance(coll, UserCollection)
+                    collections_payload.append(
+                        coll.model_dump(
+                            by_alias=True,
+                            mode="json",
+                            exclude={"UserId": True},
+                        )
+                    )
                 else:
-                    coll_uuids = collections
-                collections_payload = [
-                    {
-                        "id": collection,
-                        "readOnly": default_readonly,
-                        "hidePasswords": default_hide_passwords,
-                    }
-                    for collection in coll_uuids
-                ]
+                    coll_id = ""
+                    if isinstance(coll, OrganizationCollection):
+                        assert isinstance(coll, OrganizationCollection)
+                        coll_id = str(coll.Id)
+                    elif isinstance(collections[0], UUID):
+                        assert isinstance(coll, UUID)
+                        coll_id = str(coll)
+                    else:
+                        assert isinstance(coll, str)
+                        coll_id = coll
+                    collections_payload.append(
+                        {
+                            "id": coll_id,
+                            "readOnly": default_readonly,
+                            "hidePasswords": default_hide_passwords,
+                        }
+                    )
 
         payload = {
             "emails": [email],

@@ -85,7 +85,7 @@ class UserProfile(BaseModel, extra="allow"):
     Providers: list = []
     SecurityStamp: str
     TwoFactorEnabled: bool
-    _Status: VaultwardenUserStatus = None
+    _Status: VaultwardenUserStatus | None = None
 
     @property
     def status(self):

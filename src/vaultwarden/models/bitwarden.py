@@ -349,7 +349,7 @@ class Organization(BitwardenBaseModel):
     ):
         collections_payload = []
         if collections is not None and len(collections) > 0:
-            if collections is list[UserCollection]:
+            if isinstance(collections[0], UserCollection):
                 collections_payload = TypeAdapter(
                     list[UserCollection]
                 ).dump_python(

@@ -117,7 +117,7 @@ class VaultwardenAdminClient:
         if enabled is not None:
             res = [u for u in res if u.UserEnabled == enabled]
         if exclude_invited:
-            res = [u for u in res if u.Status != VaultwardenUserStatus.Invited]
+            res = [u for u in res if u.status != VaultwardenUserStatus.Invited]
         if as_email_dict:
             return {u.Email: u for u in res}
         if as_uuid_dict:

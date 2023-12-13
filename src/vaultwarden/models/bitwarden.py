@@ -341,7 +341,11 @@ class Organization(BitwardenBaseModel):
     def invite(
         self,
         email,
-        collections: list[UUID] | list[UserCollection] | list[str] | None,
+        collections: list[UserCollection]
+        | list[OrganizationCollection]
+        | list[UUID]
+        | list[str]
+        | None,
         access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
         default_readonly: bool = False,
@@ -359,17 +363,23 @@ class Organization(BitwardenBaseModel):
                     exclude={"__all__": {"UserId"}},
                 )
             else:
+                if isinstance(collections[0], OrganizationCollection):
+                    coll_uuids = [str(coll.Id) for coll in collections]
+                elif isinstance(collections[0], UUID):
+                    coll_uuids = [str(coll) for coll in collections]
+                else:
+                    coll_uuids = collections
                 collections_payload = [
                     {
-                        "id": collection_id,
+                        "id": collection,
                         "readOnly": default_readonly,
                         "hidePasswords": default_hide_passwords,
                     }
-                    for collection_id in collections
+                    for collection in coll_uuids
                 ]
 
         payload = {
-            "email": [email],
+            "emails": [email],
             "accessAll": access_all,
             "type": user_type,
             "Collections": collections_payload,

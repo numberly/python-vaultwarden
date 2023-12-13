@@ -88,7 +88,7 @@ class UserProfile(BaseModel, extra="allow"):
     _Status: VaultwardenUserStatus = None
 
     @property
-    def Status(self):
+    def status(self):
         return self._Status
 
 

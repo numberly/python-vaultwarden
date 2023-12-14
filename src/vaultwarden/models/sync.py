@@ -1,7 +1,7 @@
 import time
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, Field
 
 from vaultwarden.models.enum import VaultwardenUserStatus
 from vaultwarden.utils.crypto import decrypt
@@ -85,11 +85,7 @@ class UserProfile(BaseModel, extra="allow"):
     Providers: list = []
     SecurityStamp: str
     TwoFactorEnabled: bool
-    _Status: VaultwardenUserStatus | None = None
-
-    @property
-    def status(self):
-        return self._Status
+    status: VaultwardenUserStatus = Field(alias="_Status")
 
 
 class VaultwardenUser(UserProfile):

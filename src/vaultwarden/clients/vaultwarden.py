@@ -19,7 +19,13 @@ class VaultwardenAdminClient:
     _users_index: dict[UUID, int]
     _users_alias: dict[str, UUID]
 
-    def __init__(self, url: str, admin_secret_token: str, preload_users: bool):
+    def __init__(
+        self,
+        url: str,
+        admin_secret_token: str,
+        preload_users: bool,
+        timeout: int = 30,
+    ):
         # If url or admin_secret_token is None, raise an exception
         if not url or not admin_secret_token:
             raise VaultwardenAdminError("Missing url or admin_secret_token")
@@ -28,6 +34,7 @@ class VaultwardenAdminClient:
         self._http_client = Client(
             base_url=f"{self.url}/admin/",
             event_hooks={"response": [log_raise_for_status]},
+            timeout=timeout,
         )
         self._users_index = {}
         self._users_alias = {}

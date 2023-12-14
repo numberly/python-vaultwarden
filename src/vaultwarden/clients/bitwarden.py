@@ -18,6 +18,7 @@ class BitwardenAPIClient:
         client_id: str,
         client_secret: str,
         device_id: UUID | str,
+        timeout: int = 30,
     ):
         # if one of the parameters is None, raise an exception
         if not all(
@@ -33,6 +34,7 @@ class BitwardenAPIClient:
         self._http_client = Client(
             base_url=f"{self.url}/",
             event_hooks={"response": [log_raise_for_status]},
+            timeout=timeout,
         )
         self._connect_token: ConnectToken | None = None
         self._sync: SyncData | None = None

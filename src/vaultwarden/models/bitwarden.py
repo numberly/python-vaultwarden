@@ -449,7 +449,7 @@ class Organization(BitwardenBaseModel):
         self,
         email: str,
         mfa: bool | None = None,
-        force_refresh: bool | None = None,
+        force_refresh: bool = False,
     ) -> OrganizationUserDetails | None:
         users = self.users(search=email, mfa=mfa, force_refresh=force_refresh)
         if len(users) == 0:

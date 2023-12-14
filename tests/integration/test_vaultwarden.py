@@ -10,7 +10,7 @@ admin_token = os.environ.get("VAULTWARDEN_ADMIN_TOKEN", None)
 
 
 # TODO Add tests for VaultwardenAdminClient
-class VaultWardenAdminClientBasic(unittest.TestCase):
+class VaultwardenAdminClientBasic(unittest.TestCase):
     def setUp(self) -> None:
         self.vaultwarden = VaultwardenAdminClient(
             url=url, admin_secret_token=admin_token

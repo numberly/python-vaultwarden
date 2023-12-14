@@ -34,7 +34,9 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "bitwardentools >=1.0.55",
+    "hkdf >=0.0.3",
+    "pycryptodome >=3.17.0",
+    "pydantic >=2.5.0",
     "httpx >=0.24.1",
 ]
 
@@ -108,8 +110,10 @@ format = [
 [tool.ruff]
 # Add "Q" to the list of enabled codes.
 select = ["B", "E", "F", "I", "N", "Q", "RUF", "SIM", "TCH"]
+ignore = ["N815"]
 fixable = ["ALL"]
 src = ["src/vaultwarden", "tests"]
+exclude = ["src/vaultwarden/utils/crypto.py"]
 target-version = "py310"
 line-length = 79
 
@@ -141,5 +145,6 @@ version = "0.7.0"
 tag_format = "$version"
 update_changelog_on_bump = true
 version_files = [
+    "pyproject.toml",
     "src/vaultwarden/__version__.py",
 ]

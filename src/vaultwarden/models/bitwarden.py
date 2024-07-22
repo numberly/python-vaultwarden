@@ -2,11 +2,11 @@ from typing import Generic, TypeVar
 from uuid import UUID
 
 from pydantic import (
+    AliasChoices,
     BaseModel,
     Field,
     TypeAdapter,
     field_validator,
-    AliasChoices,
 )
 from pydantic_core.core_schema import FieldValidationInfo
 

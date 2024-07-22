@@ -1,13 +1,14 @@
 import time
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import Field, field_validator, AliasChoices
 
 from vaultwarden.models.enum import VaultwardenUserStatus
 from vaultwarden.utils.crypto import decrypt
+from vaultwarden.models.permissive_model import PermissiveBaseModel
 
 
-class ConnectToken(BaseModel, extra="allow"):
+class ConnectToken(PermissiveBaseModel):
     Kdf: int = 0
     KdfIterations: int = 0
     KdfMemory: int | None = None
@@ -44,7 +45,7 @@ class ConnectToken(BaseModel, extra="allow"):
         return decrypt(self.PrivateKey, self.user_key)
 
 
-class ProfileOrganization(BaseModel, extra="allow"):
+class ProfileOrganization(PermissiveBaseModel):
     Id: UUID
     Name: str
     Key: str | None = None
@@ -67,7 +68,7 @@ class ProfileOrganization(BaseModel, extra="allow"):
     UseTotp: bool
 
 
-class UserProfile(BaseModel, extra="allow"):
+class UserProfile(PermissiveBaseModel):
     AvatarColor: str | None
     Culture: str
     Email: str
@@ -85,7 +86,9 @@ class UserProfile(BaseModel, extra="allow"):
     Providers: list = []
     SecurityStamp: str
     TwoFactorEnabled: bool
-    status: VaultwardenUserStatus = Field(alias="_Status")
+    status: VaultwardenUserStatus = Field(
+        validation_alias=AliasChoices("_status", "_Status")
+    )
 
 
 class VaultwardenUser(UserProfile):
@@ -95,10 +98,10 @@ class VaultwardenUser(UserProfile):
 
 
 # TODO: add definition of attribute's types
-class SyncData(BaseModel, extra="allow"):
+class SyncData(PermissiveBaseModel):
     Ciphers: list[dict] = []
     Collections: list[dict] = []
-    Domains: dict = {}
+    Domains: dict | None = {}
     Folders: list[dict] = []
     Policies: list[dict] = []
     Profile: UserProfile

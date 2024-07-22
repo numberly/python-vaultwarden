@@ -32,9 +32,7 @@ class ConnectToken(PermissiveBaseModel):
     def is_expired(self, now=None):
         if now is None:
             now = time.time()
-        if (self.expires_in is not None) and (self.expires_in <= now):
-            return True
-        return False
+        return (self.expires_in is not None) and (self.expires_in <= now)
 
     @property
     def user_key(self):

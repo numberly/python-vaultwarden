@@ -1,6 +1,6 @@
 import http
 from http.cookiejar import Cookie
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 from uuid import UUID
 
 from httpx import Client, HTTPStatusError, Response
@@ -43,7 +43,7 @@ class VaultwardenAdminClient:
         if preload_users:
             self._load_users()
 
-    def _get_admin_cookie(self) -> Optional[Cookie]:
+    def _get_admin_cookie(self) -> Cookie | None:
         """Get the session cookie, required to authenticate requests"""
         bw_cookies = (
             c for c in self._http_client.cookies.jar if c.name == "VW_ADMIN"

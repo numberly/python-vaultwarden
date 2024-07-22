@@ -1,11 +1,11 @@
 import time
 from uuid import UUID
 
-from pydantic import Field, field_validator, AliasChoices
+from pydantic import AliasChoices, Field, field_validator
 
 from vaultwarden.models.enum import VaultwardenUserStatus
-from vaultwarden.utils.crypto import decrypt
 from vaultwarden.models.permissive_model import PermissiveBaseModel
+from vaultwarden.utils.crypto import decrypt
 
 
 class ConnectToken(PermissiveBaseModel):
@@ -79,11 +79,11 @@ class UserProfile(PermissiveBaseModel):
     MasterPasswordHint: str | None
     Name: str
     Object: str | None
-    Organizations: list[ProfileOrganization] = []
+    Organizations: list[ProfileOrganization]
     Premium: bool
     PrivateKey: str | None
-    ProviderOrganizations: list = []
-    Providers: list = []
+    ProviderOrganizations: list
+    Providers: list
     SecurityStamp: str
     TwoFactorEnabled: bool
     status: VaultwardenUserStatus = Field(
@@ -99,10 +99,10 @@ class VaultwardenUser(UserProfile):
 
 # TODO: add definition of attribute's types
 class SyncData(PermissiveBaseModel):
-    Ciphers: list[dict] = []
-    Collections: list[dict] = []
-    Domains: dict | None = {}
-    Folders: list[dict] = []
-    Policies: list[dict] = []
+    Ciphers: list[dict]
+    Collections: list[dict]
+    Domains: dict | None
+    Folders: list[dict]
+    Policies: list[dict]
     Profile: UserProfile
-    Sends: list[dict] = []
+    Sends: list[dict]

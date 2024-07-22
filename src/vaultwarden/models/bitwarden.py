@@ -1,12 +1,19 @@
 from typing import Generic, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, Field, TypeAdapter, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    TypeAdapter,
+    field_validator,
+    AliasChoices,
+)
 from pydantic_core.core_schema import FieldValidationInfo
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.enum import CipherType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
+from vaultwarden.models.permissive_model import PermissiveBaseModel
 from vaultwarden.utils.crypto import decrypt, encrypt
 
 # Pydantic models for Bitwarden data structures
@@ -14,13 +21,11 @@ from vaultwarden.utils.crypto import decrypt, encrypt
 T = TypeVar("T", bound="BitwardenBaseModel")
 
 
-class ResplistBitwarden(BaseModel, Generic[T]):
-    Data: list[T]
+class ResplistBitwarden(BaseModel, Generic[T], extra="allow"):
+    Data: list[T] = Field(alias="data", default=[])
 
 
-class BitwardenBaseModel(
-    BaseModel, extra="allow", arbitrary_types_allowed=True
-):
+class BitwardenBaseModel(PermissiveBaseModel):
     bitwarden_client: BitwardenAPIClient | None = Field(
         default=None, validate_default=True, exclude=True
     )
@@ -105,7 +110,11 @@ class CollectionAccess(BitwardenBaseModel):
 
 class CollectionUser(CollectionAccess):
     CollectionId: UUID | None = Field(None, validate_default=True)
-    UserId: UUID | None = Field(None, alias="Id", serialization_alias="Id")
+    UserId: UUID | None = Field(
+        None,
+        validation_alias=AliasChoices("id", "Id"),
+        serialization_alias="id",
+    )
 
     @field_validator("CollectionId")
     @classmethod
@@ -117,7 +126,9 @@ class CollectionUser(CollectionAccess):
 
 class UserCollection(CollectionAccess):
     CollectionId: UUID | None = Field(
-        None, alias="Id", serialization_alias="Id"
+        None,
+        validation_alias=AliasChoices("id", "Id"),
+        serialization_alias="id",
     )
     UserId: UUID | None = Field(None, validate_default=True)
 
@@ -133,7 +144,7 @@ class OrganizationCollection(BitwardenBaseModel):
     Id: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Name: str
-    ExternalId: str | None
+    ExternalId: str | None = None
 
     @field_validator("OrganizationId")
     @classmethod
@@ -484,9 +495,9 @@ class Organization(BitwardenBaseModel):
     def create_collection(self, name: str) -> OrganizationCollection:
         org_key = self.key()
         data = {
-            "Name": encrypt(2, name, self.key()),
-            "Groups": [],
-            "Users": [],
+            "name": encrypt(2, name, self.key()),
+            "groups": [],
+            "users": [],
         }
         resp = self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/collections", json=data

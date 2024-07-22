@@ -230,7 +230,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
             if collection in _current_collections:
                 continue
             user = UserCollection(
-                Id=collection,
+                CollectionId=collection,
                 UserId=self.Id,
                 ReadOnly=False,
                 HidePasswords=False,
@@ -295,7 +295,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
         self.Collections = [
             UserCollection(
                 UserId=self.Id,
-                Id=coll,
+                CollectionId=coll,
                 ReadOnly=False,
                 HidePasswords=False,
             )

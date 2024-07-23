@@ -67,6 +67,12 @@ class BitwardenAPIClient:
         )
         self._connect_token = ConnectToken.model_validate_json(resp.text)
 
+        self._connect_token.master_key = make_master_key(
+            password=self.password,
+            salt=self.email,
+            iterations=self._connect_token.KdfIterations,
+        )
+
     def _set_connect_token(self):
         headers = {
             "content-type": "application/x-www-form-urlencoded; charset=utf-8",

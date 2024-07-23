@@ -21,8 +21,8 @@ from vaultwarden.utils.crypto import decrypt, encrypt
 T = TypeVar("T", bound="BitwardenBaseModel")
 
 
-class ResplistBitwarden(BaseModel, Generic[T], extra="allow"):
-    Data: list[T] = Field(alias="data", default=[])
+class ResplistBitwarden(PermissiveBaseModel, Generic[T]):
+    Data: list[T]
 
 
 class BitwardenBaseModel(PermissiveBaseModel):

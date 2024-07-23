@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ -z "${VAULTWARDEN_VERSION}" ]]; then
-  VAULTWARDEN_VERSION="1.31.0"
+  VAULTWARDEN_VERSION="1.30.5"
 fi
 
 temp_dir=$(mktemp -d)
@@ -29,7 +29,7 @@ export BITWARDEN_TEST_ORGANIZATION="cda840d2-1de0-4f31-bd49-b30dacd7e8b0"
 export BITWARDEN_DEVICE_ID="e54ba5f5-7d58-4830-8f2b-99194c70c14f"
 
 # Run tests
-python -m unittest discover tests/e2e
+hatch run  test:with-coverage
 
 # store the exit code
 TEST_EXIT_CODE=$?

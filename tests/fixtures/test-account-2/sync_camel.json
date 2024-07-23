@@ -1,0 +1,1183 @@
+{
+  "ciphers": [
+    {
+      "attachments": null,
+      "card": null,
+      "collectionIds": [],
+      "creationDate": "2024-07-23T09:39:36.383086Z",
+      "data": {
+        "autofillOnPageLoad": null,
+        "fields": [],
+        "name": "2./3xFgTAgVkJs6idZtpcwuw==|1VwRVRXtjaT8krhE1mgCNg==|wm3vZZZusJaNZNw6QTSmb6prORAcUkcwA/kTKteQVvA=",
+        "notes": null,
+        "password": "2.oVErqSmQEmopz+xga1hpjg==|n7b4SvCtkUwvt0kt6Nhv9g==|uaaMkxnPHq3oCiedoAhN74D6pVflYMWhi4jmteRDOqo=",
+        "passwordHistory": [],
+        "passwordRevisionDate": null,
+        "totp": null,
+        "uri": null,
+        "uris": [],
+        "username": "2.xyfy7SXFQwcY/AUQmdANvQ==|Hu1DEuEHgrXU9bPAfn9KNg==|QkICrDZ1AP+hJDflNNEgH0bnFI020nysKAcZPgcpVMM="
+      },
+      "deletedDate": null,
+      "edit": true,
+      "favorite": false,
+      "fields": [],
+      "folderId": null,
+      "id": "ec31abe3-3c7a-410e-9353-5a5d8e5782d8",
+      "identity": null,
+      "key": null,
+      "login": {
+        "autofillOnPageLoad": null,
+        "password": "2.oVErqSmQEmopz+xga1hpjg==|n7b4SvCtkUwvt0kt6Nhv9g==|uaaMkxnPHq3oCiedoAhN74D6pVflYMWhi4jmteRDOqo=",
+        "passwordRevisionDate": null,
+        "totp": null,
+        "uri": null,
+        "uris": [],
+        "username": "2.xyfy7SXFQwcY/AUQmdANvQ==|Hu1DEuEHgrXU9bPAfn9KNg==|QkICrDZ1AP+hJDflNNEgH0bnFI020nysKAcZPgcpVMM="
+      },
+      "name": "2./3xFgTAgVkJs6idZtpcwuw==|1VwRVRXtjaT8krhE1mgCNg==|wm3vZZZusJaNZNw6QTSmb6prORAcUkcwA/kTKteQVvA=",
+      "notes": null,
+      "object": "cipherDetails",
+      "organizationId": null,
+      "organizationUseTotp": true,
+      "passwordHistory": [],
+      "reprompt": 0,
+      "revisionDate": "2024-07-23T09:39:36.383247Z",
+      "secureNote": null,
+      "type": 1,
+      "viewPassword": true
+    },
+    {
+      "attachments": null,
+      "card": null,
+      "collectionIds": [
+        "3c73f14f-5a01-4016-98bb-9605146a1a49"
+      ],
+      "creationDate": "2024-07-23T09:40:50.678852Z",
+      "data": {
+        "autofillOnPageLoad": null,
+        "fields": [],
+        "name": "2.YFrZrHpUErMukhH02PpBJg==|euAdV2V6x6RhKRRDQ5DgRg==|MEu8r16SaQVtPTSpt3uPkYQ5saAmgGpRwLzZv64nDoI=",
+        "notes": null,
+        "password": "2.XaBC/gN/6A8rZBs82lnyZg==|XKpgx5euzvNrNcweWhOLtA==|4jsrMTGChg5Eh5U4nQiS5fpo9dKY5s7P39mWSSNl2a4=",
+        "passwordHistory": [],
+        "passwordRevisionDate": null,
+        "totp": null,
+        "uri": null,
+        "uris": [],
+        "username": "2.AwEPZzhBWbjdO3tmLsrI0A==|9WrHrtPiiGgtRXU23y7bmw==|BehLMa8tKqDU52jZDS4sktsbF3owXsL4ZWGjGchj/kY="
+      },
+      "deletedDate": null,
+      "edit": false,
+      "favorite": false,
+      "fields": [],
+      "folderId": null,
+      "id": "fc246fe5-9177-455b-b318-c00fab407dc8",
+      "identity": null,
+      "key": null,
+      "login": {
+        "autofillOnPageLoad": null,
+        "password": "2.XaBC/gN/6A8rZBs82lnyZg==|XKpgx5euzvNrNcweWhOLtA==|4jsrMTGChg5Eh5U4nQiS5fpo9dKY5s7P39mWSSNl2a4=",
+        "passwordRevisionDate": null,
+        "totp": null,
+        "uri": null,
+        "uris": [],
+        "username": "2.AwEPZzhBWbjdO3tmLsrI0A==|9WrHrtPiiGgtRXU23y7bmw==|BehLMa8tKqDU52jZDS4sktsbF3owXsL4ZWGjGchj/kY="
+      },
+      "name": "2.YFrZrHpUErMukhH02PpBJg==|euAdV2V6x6RhKRRDQ5DgRg==|MEu8r16SaQVtPTSpt3uPkYQ5saAmgGpRwLzZv64nDoI=",
+      "notes": null,
+      "object": "cipherDetails",
+      "organizationId": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0",
+      "organizationUseTotp": true,
+      "passwordHistory": [],
+      "reprompt": 0,
+      "revisionDate": "2024-07-23T09:40:50.679370Z",
+      "secureNote": null,
+      "type": 1,
+      "viewPassword": true
+    }
+  ],
+  "collections": [
+    {
+      "externalId": null,
+      "hidePasswords": false,
+      "id": "3c73f14f-5a01-4016-98bb-9605146a1a49",
+      "name": "2.M5LLRUsBnTovXQuA4DBKLA==|ViL7ZxNENF6j28TjwwoHKN555BU9Wid75uvYyd0munE=|BIgdP+aizz0FrAJk5pTov4wbHME/Qm3GpJ0u1CgR/OE=",
+      "object": "collectionDetails",
+      "organizationId": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0",
+      "readOnly": true
+    }
+  ],
+  "domains": {
+    "equivalentDomains": [],
+    "globalEquivalentDomains": [
+      {
+        "domains": [
+          "ameritrade.com",
+          "tdameritrade.com"
+        ],
+        "excluded": false,
+        "type": 2
+      },
+      {
+        "domains": [
+          "bankofamerica.com",
+          "bofa.com",
+          "mbna.com",
+          "usecfo.com"
+        ],
+        "excluded": false,
+        "type": 3
+      },
+      {
+        "domains": [
+          "sprint.com",
+          "sprintpcs.com",
+          "nextel.com"
+        ],
+        "excluded": false,
+        "type": 4
+      },
+      {
+        "domains": [
+          "youtube.com",
+          "google.com",
+          "gmail.com"
+        ],
+        "excluded": false,
+        "type": 0
+      },
+      {
+        "domains": [
+          "apple.com",
+          "icloud.com"
+        ],
+        "excluded": false,
+        "type": 1
+      },
+      {
+        "domains": [
+          "wellsfargo.com",
+          "wf.com",
+          "wellsfargoadvisors.com"
+        ],
+        "excluded": false,
+        "type": 5
+      },
+      {
+        "domains": [
+          "mymerrill.com",
+          "ml.com",
+          "merrilledge.com"
+        ],
+        "excluded": false,
+        "type": 6
+      },
+      {
+        "domains": [
+          "accountonline.com",
+          "citi.com",
+          "citibank.com",
+          "citicards.com",
+          "citibankonline.com"
+        ],
+        "excluded": false,
+        "type": 7
+      },
+      {
+        "domains": [
+          "cnet.com",
+          "cnettv.com",
+          "com.com",
+          "download.com",
+          "news.com",
+          "search.com",
+          "upload.com"
+        ],
+        "excluded": false,
+        "type": 8
+      },
+      {
+        "domains": [
+          "bananarepublic.com",
+          "gap.com",
+          "oldnavy.com",
+          "piperlime.com"
+        ],
+        "excluded": false,
+        "type": 9
+      },
+      {
+        "domains": [
+          "bing.com",
+          "hotmail.com",
+          "live.com",
+          "microsoft.com",
+          "msn.com",
+          "passport.net",
+          "windows.com",
+          "microsoftonline.com",
+          "office.com",
+          "office365.com",
+          "microsoftstore.com",
+          "xbox.com",
+          "azure.com",
+          "windowsazure.com"
+        ],
+        "excluded": false,
+        "type": 10
+      },
+      {
+        "domains": [
+          "ua2go.com",
+          "ual.com",
+          "united.com",
+          "unitedwifi.com"
+        ],
+        "excluded": false,
+        "type": 11
+      },
+      {
+        "domains": [
+          "overture.com",
+          "yahoo.com"
+        ],
+        "excluded": false,
+        "type": 12
+      },
+      {
+        "domains": [
+          "zonealarm.com",
+          "zonelabs.com"
+        ],
+        "excluded": false,
+        "type": 13
+      },
+      {
+        "domains": [
+          "paypal.com",
+          "paypal-search.com"
+        ],
+        "excluded": false,
+        "type": 14
+      },
+      {
+        "domains": [
+          "avon.com",
+          "youravon.com"
+        ],
+        "excluded": false,
+        "type": 15
+      },
+      {
+        "domains": [
+          "diapers.com",
+          "soap.com",
+          "wag.com",
+          "yoyo.com",
+          "beautybar.com",
+          "casa.com",
+          "afterschool.com",
+          "vine.com",
+          "bookworm.com",
+          "look.com",
+          "vinemarket.com"
+        ],
+        "excluded": false,
+        "type": 16
+      },
+      {
+        "domains": [
+          "1800contacts.com",
+          "800contacts.com"
+        ],
+        "excluded": false,
+        "type": 17
+      },
+      {
+        "domains": [
+          "amazon.com",
+          "amazon.com.be",
+          "amazon.ae",
+          "amazon.ca",
+          "amazon.co.uk",
+          "amazon.com.au",
+          "amazon.com.br",
+          "amazon.com.mx",
+          "amazon.com.tr",
+          "amazon.de",
+          "amazon.es",
+          "amazon.fr",
+          "amazon.in",
+          "amazon.it",
+          "amazon.nl",
+          "amazon.pl",
+          "amazon.sa",
+          "amazon.se",
+          "amazon.sg"
+        ],
+        "excluded": false,
+        "type": 18
+      },
+      {
+        "domains": [
+          "cox.com",
+          "cox.net",
+          "coxbusiness.com"
+        ],
+        "excluded": false,
+        "type": 19
+      },
+      {
+        "domains": [
+          "mynortonaccount.com",
+          "norton.com"
+        ],
+        "excluded": false,
+        "type": 20
+      },
+      {
+        "domains": [
+          "verizon.com",
+          "verizon.net"
+        ],
+        "excluded": false,
+        "type": 21
+      },
+      {
+        "domains": [
+          "rakuten.com",
+          "buy.com"
+        ],
+        "excluded": false,
+        "type": 22
+      },
+      {
+        "domains": [
+          "siriusxm.com",
+          "sirius.com"
+        ],
+        "excluded": false,
+        "type": 23
+      },
+      {
+        "domains": [
+          "ea.com",
+          "origin.com",
+          "play4free.com",
+          "tiberiumalliance.com"
+        ],
+        "excluded": false,
+        "type": 24
+      },
+      {
+        "domains": [
+          "37signals.com",
+          "basecamp.com",
+          "basecamphq.com",
+          "highrisehq.com"
+        ],
+        "excluded": false,
+        "type": 25
+      },
+      {
+        "domains": [
+          "steampowered.com",
+          "steamcommunity.com",
+          "steamgames.com"
+        ],
+        "excluded": false,
+        "type": 26
+      },
+      {
+        "domains": [
+          "chart.io",
+          "chartio.com"
+        ],
+        "excluded": false,
+        "type": 27
+      },
+      {
+        "domains": [
+          "gotomeeting.com",
+          "citrixonline.com"
+        ],
+        "excluded": false,
+        "type": 28
+      },
+      {
+        "domains": [
+          "gogoair.com",
+          "gogoinflight.com"
+        ],
+        "excluded": false,
+        "type": 29
+      },
+      {
+        "domains": [
+          "mysql.com",
+          "oracle.com"
+        ],
+        "excluded": false,
+        "type": 30
+      },
+      {
+        "domains": [
+          "discover.com",
+          "discovercard.com"
+        ],
+        "excluded": false,
+        "type": 31
+      },
+      {
+        "domains": [
+          "dcu.org",
+          "dcu-online.org"
+        ],
+        "excluded": false,
+        "type": 32
+      },
+      {
+        "domains": [
+          "healthcare.gov",
+          "cuidadodesalud.gov",
+          "cms.gov"
+        ],
+        "excluded": false,
+        "type": 33
+      },
+      {
+        "domains": [
+          "pepco.com",
+          "pepcoholdings.com"
+        ],
+        "excluded": false,
+        "type": 34
+      },
+      {
+        "domains": [
+          "century21.com",
+          "21online.com"
+        ],
+        "excluded": false,
+        "type": 35
+      },
+      {
+        "domains": [
+          "comcast.com",
+          "comcast.net",
+          "xfinity.com"
+        ],
+        "excluded": false,
+        "type": 36
+      },
+      {
+        "domains": [
+          "cricketwireless.com",
+          "aiowireless.com"
+        ],
+        "excluded": false,
+        "type": 37
+      },
+      {
+        "domains": [
+          "mandtbank.com",
+          "mtb.com"
+        ],
+        "excluded": false,
+        "type": 38
+      },
+      {
+        "domains": [
+          "dropbox.com",
+          "getdropbox.com"
+        ],
+        "excluded": false,
+        "type": 39
+      },
+      {
+        "domains": [
+          "snapfish.com",
+          "snapfish.ca"
+        ],
+        "excluded": false,
+        "type": 40
+      },
+      {
+        "domains": [
+          "alibaba.com",
+          "aliexpress.com",
+          "aliyun.com",
+          "net.cn"
+        ],
+        "excluded": false,
+        "type": 41
+      },
+      {
+        "domains": [
+          "playstation.com",
+          "sonyentertainmentnetwork.com"
+        ],
+        "excluded": false,
+        "type": 42
+      },
+      {
+        "domains": [
+          "mercadolivre.com",
+          "mercadolivre.com.br",
+          "mercadolibre.com",
+          "mercadolibre.com.ar",
+          "mercadolibre.com.mx"
+        ],
+        "excluded": false,
+        "type": 43
+      },
+      {
+        "domains": [
+          "zendesk.com",
+          "zopim.com"
+        ],
+        "excluded": false,
+        "type": 44
+      },
+      {
+        "domains": [
+          "autodesk.com",
+          "tinkercad.com"
+        ],
+        "excluded": false,
+        "type": 45
+      },
+      {
+        "domains": [
+          "railnation.ru",
+          "railnation.de",
+          "rail-nation.com",
+          "railnation.gr",
+          "railnation.us",
+          "trucknation.de",
+          "traviangames.com"
+        ],
+        "excluded": false,
+        "type": 46
+      },
+      {
+        "domains": [
+          "wpcu.coop",
+          "wpcuonline.com"
+        ],
+        "excluded": false,
+        "type": 47
+      },
+      {
+        "domains": [
+          "mathletics.com",
+          "mathletics.com.au",
+          "mathletics.co.uk"
+        ],
+        "excluded": false,
+        "type": 48
+      },
+      {
+        "domains": [
+          "discountbank.co.il",
+          "telebank.co.il"
+        ],
+        "excluded": false,
+        "type": 49
+      },
+      {
+        "domains": [
+          "mi.com",
+          "xiaomi.com"
+        ],
+        "excluded": false,
+        "type": 50
+      },
+      {
+        "domains": [
+          "postepay.it",
+          "poste.it"
+        ],
+        "excluded": false,
+        "type": 52
+      },
+      {
+        "domains": [
+          "facebook.com",
+          "messenger.com"
+        ],
+        "excluded": false,
+        "type": 51
+      },
+      {
+        "domains": [
+          "skysports.com",
+          "skybet.com",
+          "skyvegas.com"
+        ],
+        "excluded": false,
+        "type": 53
+      },
+      {
+        "domains": [
+          "disneymoviesanywhere.com",
+          "go.com",
+          "disney.com",
+          "dadt.com",
+          "disneyplus.com"
+        ],
+        "excluded": false,
+        "type": 54
+      },
+      {
+        "domains": [
+          "pokemon-gl.com",
+          "pokemon.com"
+        ],
+        "excluded": false,
+        "type": 55
+      },
+      {
+        "domains": [
+          "myuv.com",
+          "uvvu.com"
+        ],
+        "excluded": false,
+        "type": 56
+      },
+      {
+        "domains": [
+          "mdsol.com",
+          "imedidata.com"
+        ],
+        "excluded": false,
+        "type": 58
+      },
+      {
+        "domains": [
+          "bank-yahav.co.il",
+          "bankhapoalim.co.il"
+        ],
+        "excluded": false,
+        "type": 57
+      },
+      {
+        "domains": [
+          "sears.com",
+          "shld.net"
+        ],
+        "excluded": false,
+        "type": 59
+      },
+      {
+        "domains": [
+          "xiami.com",
+          "alipay.com"
+        ],
+        "excluded": false,
+        "type": 60
+      },
+      {
+        "domains": [
+          "belkin.com",
+          "seedonk.com"
+        ],
+        "excluded": false,
+        "type": 61
+      },
+      {
+        "domains": [
+          "turbotax.com",
+          "intuit.com"
+        ],
+        "excluded": false,
+        "type": 62
+      },
+      {
+        "domains": [
+          "shopify.com",
+          "myshopify.com"
+        ],
+        "excluded": false,
+        "type": 63
+      },
+      {
+        "domains": [
+          "ebay.com",
+          "ebay.at",
+          "ebay.be",
+          "ebay.ca",
+          "ebay.ch",
+          "ebay.cn",
+          "ebay.co.jp",
+          "ebay.co.th",
+          "ebay.co.uk",
+          "ebay.com.au",
+          "ebay.com.hk",
+          "ebay.com.my",
+          "ebay.com.sg",
+          "ebay.com.tw",
+          "ebay.de",
+          "ebay.es",
+          "ebay.fr",
+          "ebay.ie",
+          "ebay.in",
+          "ebay.it",
+          "ebay.nl",
+          "ebay.ph",
+          "ebay.pl"
+        ],
+        "excluded": false,
+        "type": 64
+      },
+      {
+        "domains": [
+          "techdata.com",
+          "techdata.ch"
+        ],
+        "excluded": false,
+        "type": 65
+      },
+      {
+        "domains": [
+          "schwab.com",
+          "schwabplan.com"
+        ],
+        "excluded": false,
+        "type": 66
+      },
+      {
+        "domains": [
+          "tesla.com",
+          "teslamotors.com"
+        ],
+        "excluded": false,
+        "type": 68
+      },
+      {
+        "domains": [
+          "morganstanley.com",
+          "morganstanleyclientserv.com",
+          "stockplanconnect.com",
+          "ms.com"
+        ],
+        "excluded": false,
+        "type": 69
+      },
+      {
+        "domains": [
+          "taxact.com",
+          "taxactonline.com"
+        ],
+        "excluded": false,
+        "type": 70
+      },
+      {
+        "domains": [
+          "mediawiki.org",
+          "wikibooks.org",
+          "wikidata.org",
+          "wikimedia.org",
+          "wikinews.org",
+          "wikipedia.org",
+          "wikiquote.org",
+          "wikisource.org",
+          "wikiversity.org",
+          "wikivoyage.org",
+          "wiktionary.org"
+        ],
+        "excluded": false,
+        "type": 71
+      },
+      {
+        "domains": [
+          "airbnb.at",
+          "airbnb.be",
+          "airbnb.ca",
+          "airbnb.ch",
+          "airbnb.cl",
+          "airbnb.co.cr",
+          "airbnb.co.id",
+          "airbnb.co.in",
+          "airbnb.co.kr",
+          "airbnb.co.nz",
+          "airbnb.co.uk",
+          "airbnb.co.ve",
+          "airbnb.com",
+          "airbnb.com.ar",
+          "airbnb.com.au",
+          "airbnb.com.bo",
+          "airbnb.com.br",
+          "airbnb.com.bz",
+          "airbnb.com.co",
+          "airbnb.com.ec",
+          "airbnb.com.gt",
+          "airbnb.com.hk",
+          "airbnb.com.hn",
+          "airbnb.com.mt",
+          "airbnb.com.my",
+          "airbnb.com.ni",
+          "airbnb.com.pa",
+          "airbnb.com.pe",
+          "airbnb.com.py",
+          "airbnb.com.sg",
+          "airbnb.com.sv",
+          "airbnb.com.tr",
+          "airbnb.com.tw",
+          "airbnb.cz",
+          "airbnb.de",
+          "airbnb.dk",
+          "airbnb.es",
+          "airbnb.fi",
+          "airbnb.fr",
+          "airbnb.gr",
+          "airbnb.gy",
+          "airbnb.hu",
+          "airbnb.ie",
+          "airbnb.is",
+          "airbnb.it",
+          "airbnb.jp",
+          "airbnb.mx",
+          "airbnb.nl",
+          "airbnb.no",
+          "airbnb.pl",
+          "airbnb.pt",
+          "airbnb.ru",
+          "airbnb.se"
+        ],
+        "excluded": false,
+        "type": 72
+      },
+      {
+        "domains": [
+          "eventbrite.at",
+          "eventbrite.be",
+          "eventbrite.ca",
+          "eventbrite.ch",
+          "eventbrite.cl",
+          "eventbrite.co",
+          "eventbrite.co.nz",
+          "eventbrite.co.uk",
+          "eventbrite.com",
+          "eventbrite.com.ar",
+          "eventbrite.com.au",
+          "eventbrite.com.br",
+          "eventbrite.com.mx",
+          "eventbrite.com.pe",
+          "eventbrite.de",
+          "eventbrite.dk",
+          "eventbrite.es",
+          "eventbrite.fi",
+          "eventbrite.fr",
+          "eventbrite.hk",
+          "eventbrite.ie",
+          "eventbrite.it",
+          "eventbrite.nl",
+          "eventbrite.pt",
+          "eventbrite.se",
+          "eventbrite.sg"
+        ],
+        "excluded": false,
+        "type": 73
+      },
+      {
+        "domains": [
+          "stackexchange.com",
+          "superuser.com",
+          "stackoverflow.com",
+          "serverfault.com",
+          "mathoverflow.net",
+          "askubuntu.com",
+          "stackapps.com"
+        ],
+        "excluded": false,
+        "type": 74
+      },
+      {
+        "domains": [
+          "docusign.com",
+          "docusign.net"
+        ],
+        "excluded": false,
+        "type": 75
+      },
+      {
+        "domains": [
+          "envato.com",
+          "themeforest.net",
+          "codecanyon.net",
+          "videohive.net",
+          "audiojungle.net",
+          "graphicriver.net",
+          "photodune.net",
+          "3docean.net"
+        ],
+        "excluded": false,
+        "type": 76
+      },
+      {
+        "domains": [
+          "x10hosting.com",
+          "x10premium.com"
+        ],
+        "excluded": false,
+        "type": 77
+      },
+      {
+        "domains": [
+          "dnsomatic.com",
+          "opendns.com",
+          "umbrella.com"
+        ],
+        "excluded": false,
+        "type": 78
+      },
+      {
+        "domains": [
+          "cagreatamerica.com",
+          "canadaswonderland.com",
+          "carowinds.com",
+          "cedarfair.com",
+          "cedarpoint.com",
+          "dorneypark.com",
+          "kingsdominion.com",
+          "knotts.com",
+          "miadventure.com",
+          "schlitterbahn.com",
+          "valleyfair.com",
+          "visitkingsisland.com",
+          "worldsoffun.com"
+        ],
+        "excluded": false,
+        "type": 79
+      },
+      {
+        "domains": [
+          "ubnt.com",
+          "ui.com"
+        ],
+        "excluded": false,
+        "type": 80
+      },
+      {
+        "domains": [
+          "discordapp.com",
+          "discord.com"
+        ],
+        "excluded": false,
+        "type": 81
+      },
+      {
+        "domains": [
+          "netcup.de",
+          "netcup.eu",
+          "customercontrolpanel.de"
+        ],
+        "excluded": false,
+        "type": 82
+      },
+      {
+        "domains": [
+          "yandex.com",
+          "ya.ru",
+          "yandex.az",
+          "yandex.by",
+          "yandex.co.il",
+          "yandex.com.am",
+          "yandex.com.ge",
+          "yandex.com.tr",
+          "yandex.ee",
+          "yandex.fi",
+          "yandex.fr",
+          "yandex.kg",
+          "yandex.kz",
+          "yandex.lt",
+          "yandex.lv",
+          "yandex.md",
+          "yandex.pl",
+          "yandex.ru",
+          "yandex.tj",
+          "yandex.tm",
+          "yandex.ua",
+          "yandex.uz"
+        ],
+        "excluded": false,
+        "type": 83
+      },
+      {
+        "domains": [
+          "sonyentertainmentnetwork.com",
+          "sony.com"
+        ],
+        "excluded": false,
+        "type": 84
+      },
+      {
+        "domains": [
+          "proton.me",
+          "protonmail.com",
+          "protonvpn.com"
+        ],
+        "excluded": false,
+        "type": 85
+      },
+      {
+        "domains": [
+          "ubisoft.com",
+          "ubi.com"
+        ],
+        "excluded": false,
+        "type": 86
+      },
+      {
+        "domains": [
+          "transferwise.com",
+          "wise.com"
+        ],
+        "excluded": false,
+        "type": 87
+      },
+      {
+        "domains": [
+          "takeaway.com",
+          "just-eat.dk",
+          "just-eat.no",
+          "just-eat.fr",
+          "just-eat.ch",
+          "lieferando.de",
+          "lieferando.at",
+          "thuisbezorgd.nl",
+          "pyszne.pl"
+        ],
+        "excluded": false,
+        "type": 88
+      },
+      {
+        "domains": [
+          "atlassian.com",
+          "bitbucket.org",
+          "trello.com",
+          "statuspage.io",
+          "atlassian.net",
+          "jira.com"
+        ],
+        "excluded": false,
+        "type": 89
+      },
+      {
+        "domains": [
+          "pinterest.com",
+          "pinterest.com.au",
+          "pinterest.cl",
+          "pinterest.de",
+          "pinterest.dk",
+          "pinterest.es",
+          "pinterest.fr",
+          "pinterest.co.uk",
+          "pinterest.jp",
+          "pinterest.co.kr",
+          "pinterest.nz",
+          "pinterest.pt",
+          "pinterest.se"
+        ],
+        "excluded": false,
+        "type": 90
+      }
+    ],
+    "object": "domains"
+  },
+  "folders": [],
+  "object": "sync",
+  "policies": [],
+  "profile": {
+    "_status": 0,
+    "avatarColor": null,
+    "culture": "en-US",
+    "email": "test-account-2@example.com",
+    "emailVerified": true,
+    "forcePasswordReset": false,
+    "id": "cd95d118-e96d-4b8d-a000-a10c92dd8f88",
+    "key": "2.Y2xq0VALTE95WfqukeGjRA==|ycjbWhJ+LCSRmQyjil6CY6ylkHUtb4rIjIUjiaDSNZTIhwUpDBewINyou2HsBmr/JRj4bljVLcwYK/LzeCcstizhUf9KzveYkPiTfvBNzmk=|3CLBCSMdLRElzR0h+wm8JvxiYkkoHS9WO3MHpRMMAc4=",
+    "masterPasswordHint": null,
+    "name": "Test Account 2",
+    "object": "profile",
+    "organizations": [
+      {
+        "accessSecretsManager": false,
+        "allowAdminAccessToAllCollectionItems": true,
+        "enabled": true,
+        "familySponsorshipAvailable": false,
+        "familySponsorshipFriendlyName": null,
+        "familySponsorshipLastSyncDate": null,
+        "familySponsorshipToDelete": null,
+        "familySponsorshipValidUntil": null,
+        "flexibleCollections": false,
+        "hasPublicAndPrivateKeys": true,
+        "id": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0",
+        "identifier": null,
+        "key": "4.Oc8mQiv88uC4GuG9cPiCW7fpWiXAJ0Q1R1QvEuXjhpKsGA405FOTAvH9DpWZDrta3KG07ek273j7c7+z7g9VC0a+N7DS52DL29vIRz5sE8gDDxlK5vBVJz5tU8lrJiObBz93nYr0U3ujmcL4VTbchlrNAtz2Cp3LtlEQGKzT2isGZZm3GpCriZvls9IaapXRTXMDS0YlTo39zNSeR0xNe3kMAnM5fbiNe5RxFGdxwISOHczdPIF4e/k4n1+TTbmrQ1SieQIASgfCdCjRDhQdexMaoafKDgfjZBwwLn7d9kL2D/8ni9AhOxJzpsn3O3tgW2m+kWu+8ytGP9YE6jwMUw==",
+        "keyConnectorEnabled": false,
+        "keyConnectorUrl": null,
+        "limitCollectionCreationDeletion": true,
+        "maxCollections": 10,
+        "maxStorageGb": 10,
+        "name": "Test Organization",
+        "object": "profileOrganization",
+        "permissions": {
+          "accessEventLogs": false,
+          "accessImportExport": false,
+          "accessReports": false,
+          "createNewCollections": false,
+          "deleteAnyCollection": false,
+          "deleteAssignedCollections": false,
+          "editAnyCollection": false,
+          "editAssignedCollections": false,
+          "manageGroups": false,
+          "managePolicies": false,
+          "manageResetPassword": false,
+          "manageScim": false,
+          "manageSso": false,
+          "manageUsers": false
+        },
+        "planProductType": 0,
+        "providerId": null,
+        "providerName": null,
+        "providerType": null,
+        "resetPasswordEnrolled": false,
+        "seats": 10,
+        "selfHost": true,
+        "ssoBound": false,
+        "status": 2,
+        "type": 2,
+        "use2fa": true,
+        "useActivateAutofillPolicy": false,
+        "useApi": true,
+        "useCustomPermissions": false,
+        "useDirectory": false,
+        "useEvents": false,
+        "useGroups": false,
+        "useKeyConnector": false,
+        "usePasswordManager": true,
+        "usePolicies": true,
+        "useResetPassword": false,
+        "useScim": false,
+        "useSecretsManager": false,
+        "useSso": false,
+        "useTotp": true,
+        "userId": "cd95d118-e96d-4b8d-a000-a10c92dd8f88",
+        "usersGetPremium": true
+      }
+    ],
+    "premium": true,
+    "premiumFromOrganization": false,
+    "privateKey": "2.jwhyVLmpbVAdnDWAzWcC2A==|uK3ZVxUL1h23PuIMFwRF04TMLrwMph5eQaiof22jvvvSMr0lK96yoZgZ16Iwod62csJps0PLzPRTywfO8M3yZTzD/zVIY26NKc5fCdRotXFjNzt4AdGeBioLA5c3EzOlmD3Jc3Eefcu1tPR+j2HuuJLsaGlSrQ3SRn3JJTBrLavddApw/PS8yb4uz5NoE3U9gnMvD+Uf9SzGhiDlBMHWlFGQ1CZKtKNEY5HOginiOFHoswveMFtUZgxioYXzSqSWES9k1LSbrUZNBNqLHZhEbXAupYpD6peUe+KIFx0vNIiXzRt5vnuOEYku9eeCfPugRrVtH/FuTJEAvkz9Kbb0XR1u4YEMRi8k5b9bmwqE6EwYcIJ9Djg8XO6psP5M5Wz3ForPKRWYnRmkGS4MKjCX4JtnrNmEKGx5Gzw1YNiBwYkY6tA8lNMGKLqW9qufE2vGmkvF8cq3cG6QOd3nzUCcxmjAZuDo8ZWd7axv1y4J0TUqNQQQ2Bnd+ZMcORYUafV10fZ5AIKisdWhOw4HJXUcDWGXXmeftuA9kkUN1FZZI2bdYfDpBOzw9WBt4vGNbU2Uw/Px6u6DzwbEa+Pd4LTJem6oIyFhy/mNqZWjPyX46J0FHTPjqFGFwExvoBcCKPG6BDaZb3y22kxZr9Ss7LbV6Tax1JxA4I0elaX5CgrIozh/nji7f7oTdYljWYGA7Ts3Eb2mL1j+az1UHwi0qDVe1v8E4CBxZyNBw4JbuFQ1eTys6DOmkGPw00sngF0o1wFxgcRN9UK1DlmheF3omKwT42G8KAYPuPawDGZEtNOa9xoGVgVOXmKI4x+xFNenHm6oNd5WGrXDq7FCkkho32KmESmZhFxTaILJ4WrKOHUUDQhZ75K/jd67rQuvq0MbAD74+sxpQlosvuWtDWW9ceTRa0uEWrpHwB8vc9BbSqUwgdP03J38R/siNft06eBWtFktCQOQEZRv5VA+QSf5KPeH+0QNV2UtzpyiI7ce7mQlhXHvKXgf+p+QKN2U6nMH07KH1KlSQGTx58p/yEuReEDqht7/OCD9oQgUMtnY5gm3g+J4orz5tMtbV1RUSaeMUH+DN4gOgZlGFFw+gBVr5SLa1eIkdVpg86CdGUpODOJsnNGkFieQ+SEuUgZC1smPw270JVfDIwZ7jXplErw85zURY32tty8Lb1YaOkvIpyPx9ylMATpD1QkwlcUSoS6M9kiCeZGUWrTPDpmFI8fav79q3+X8xrZrQ3xCLKCii+d+Mban4M+liXLBGaZowqzWxv2d6EmxnJVzhJZqFMxcmOeCdwsgwbxUD6Ycd7fN/7rDBrIKOMiF3x/xlIpVLa3aA83dSQKsbkxVpjwS05fn53E96ZQaRX9avXRhIfsG3sD3TDvBU2disAi4wDszA3VgkLsxo9HZyiBdXVbzrdC97FqsIH49bmwBpj38pOhtkYu+JlXdXeKA9m1UIrKfgXY94dkEgO/qQnttZW6OmdfqFfJWx3qEv6/UoUxHoSdFlKDndkQIHfXQT3IlK8eHpUt0VdXs9JSkhcBsIZ6N/L2TN1kPhBMUr8W0eYu7yv9q/olSkCbF9NqyraFwvJP2IGr4WepOg4hn0lM2yVc1xzIXWqKNPaWj4AgTDzjqFQR8wPaHSC4=|anAl2GmUHBH7LaStnTMYYz3fPuqJ/obAyLb7waj5b8o=",
+    "providerOrganizations": [],
+    "providers": [],
+    "securityStamp": "89c314b3-6645-4adb-a1c6-e470a977e6e4",
+    "twoFactorEnabled": false,
+    "usesKeyConnector": false
+  },
+  "sends": [],
+  "unofficialServer": true
+}

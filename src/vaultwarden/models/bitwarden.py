@@ -3,7 +3,6 @@ from uuid import UUID
 
 from pydantic import (
     AliasChoices,
-    BaseModel,
     Field,
     TypeAdapter,
     field_validator,

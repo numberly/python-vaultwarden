@@ -1,12 +1,7 @@
 from typing import Generic, TypeVar
 from uuid import UUID
 
-from pydantic import (
-    AliasChoices,
-    Field,
-    TypeAdapter,
-    field_validator,
-)
+from pydantic import AliasChoices, Field, TypeAdapter, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient

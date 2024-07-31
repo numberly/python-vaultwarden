@@ -1,0 +1,42 @@
+{
+  "continuationToken": null,
+  "data": [
+    {
+      "accessAll": true,
+      "collections": [],
+      "email": "test-account@example.com",
+      "externalId": null,
+      "groups": [],
+      "id": "44f9833c-33dd-461c-a691-563115724e55",
+      "name": "Test Account",
+      "object": "organizationUserUserDetails",
+      "resetPasswordEnrolled": false,
+      "status": 2,
+      "twoFactorEnabled": false,
+      "type": 0,
+      "userId": "a8be340c-856b-481f-8183-2b7712995da2"
+    },
+    {
+      "accessAll": false,
+      "collections": [
+        {
+          "hidePasswords": false,
+          "id": "3c73f14f-5a01-4016-98bb-9605146a1a49",
+          "readOnly": true
+        }
+      ],
+      "email": "test-account-2@example.com",
+      "externalId": null,
+      "groups": [],
+      "id": "7f009002-3a23-4880-985c-d9c351192820",
+      "name": "Test Account 2",
+      "object": "organizationUserUserDetails",
+      "resetPasswordEnrolled": false,
+      "status": 2,
+      "twoFactorEnabled": false,
+      "type": 2,
+      "userId": "cd95d118-e96d-4b8d-a000-a10c92dd8f88"
+    }
+  ],
+  "object": "list"
+}

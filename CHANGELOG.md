@@ -1,3 +1,9 @@
+## 1.0.1rc1 (2024-08-12)
+
+### Fix
+
+- **sync-seat-null**: Seats value can be null
+
 ## 1.0.1rc0 (2024-07-25)
 
 ### Fix

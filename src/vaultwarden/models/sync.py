@@ -50,7 +50,7 @@ class ProfileOrganization(PermissiveBaseModel):
     ProviderId: str | None = None
     ProviderName: str | None = None
     ResetPasswordEnrolled: bool
-    Seats: int
+    Seats: int | None = None
     SelfHost: bool
     SsoBound: bool
     Status: int

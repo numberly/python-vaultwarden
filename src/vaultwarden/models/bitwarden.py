@@ -57,43 +57,34 @@ class CipherDetails(BitwardenBaseModel):
             if collection in _current_collections:
                 continue
             self.CollectionIds.append(collection)
+        dump = [str(coll_id) for coll_id in self.CollectionIds]
         return self.api_client.api_request(
             "POST",
-            f"api/ciphers/{self.Id}",
-            json=self.model_dump(
-                include={
-                    "CollectionIds": True,
-                }
-            ),
+            f"api/ciphers/{self.Id}/collections",
+            json={"collectionIds": dump},
         )
 
     def remove_collections(self, collections: list[UUID]):
         self.CollectionIds = [
             coll for coll in self.CollectionIds if coll not in collections
         ]
+        dump = [str(coll_id) for coll_id in self.CollectionIds]
         return self.api_client.api_request(
             "POST",
-            f"api/ciphers/{self.Id}",
-            json=self.model_dump(
-                include={
-                    "CollectionIds": True,
-                }
-            ),
+            f"api/ciphers/{self.Id}/collections",
+            json={"collectionIds": dump},
         )
 
     def delete(self):
         return self.api_client.api_request("DELETE", f"api/ciphers/{self.Id}")
 
     def update_collection(self, collections: list[UUID]):
+        dump = [str(coll_id) for coll_id in collections]
         self.CollectionIds = collections
         return self.api_client.api_request(
             "POST",
-            f"api/ciphers/{self.Id}",
-            json=self.model_dump(
-                include={
-                    "CollectionIds": True,
-                }
-            ),
+            f"api/ciphers/{self.Id}/collections",
+            json={"collectionIds": dump},
         )
 
 

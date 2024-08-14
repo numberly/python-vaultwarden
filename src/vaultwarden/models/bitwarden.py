@@ -385,8 +385,8 @@ class Organization(BitwardenBaseModel):
             "emails": [email],
             "accessAll": access_all,
             "type": user_type,
-            "Collections": collections_payload,
-            "Groups": [],
+            "collections": collections_payload,
+            "groups": [],
         }
         resp = self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/users/invite", json=payload

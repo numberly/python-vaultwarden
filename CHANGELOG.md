@@ -1,3 +1,10 @@
+## 1.0.1rc2 (2024-08-14)
+
+### Fix
+
+- **org-invite**: fix organization invitte payload
+- **cipher-collections**: fix method changing collections of a cipher
+
 ## 1.0.1rc1 (2024-08-12)
 
 ### Fix

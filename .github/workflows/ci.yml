@@ -13,11 +13,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.10', '3.11' ]
+        python-version: [ '3.10', '3.11', '3.12' ]
         os: [ ubuntu-latest ]
+        vaultwarden-version: [ '1.30.5', '1.31.0' , '1.32.0']
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
+        with:
+          lfs: true
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -25,9 +28,24 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade hatch
+      - name: Run Vaultwarden server
+        run: |
+          temp_dir=$(mktemp -d)
+          cp ${{ github.workspace }}/tests/fixtures/server/* $temp_dir
+          docker run -d --name vaultwarden -v $temp_dir:/data  --env I_REALLY_WANT_VOLATILE_STORAGE=true --env ADMIN_TOKEN=admin  --restart unless-stopped -p 80:80 vaultwarden/server:${{ matrix.vaultwarden-version }}
       - name: Run tests
         run: |
           hatch run +py=${{ matrix.py || matrix.python-version }} test:with-coverage
+        env:
+          VAULTWARDEN_URL: "http://127.0.0.1:80"
+          VAULTWARDEN_ADMIN_TOKEN: "admin"
+          BITWARDEN_URL: "http://127.0.0.1:80"
+          BITWARDEN_EMAIL: "test-account@example.com"
+          BITWARDEN_PASSWORD: "test-account"
+          BITWARDEN_CLIENT_ID: "user.a8be340c-856b-481f-8183-2b7712995da2"
+          BITWARDEN_CLIENT_SECRET: "ag66paVUq4h7tBLbCbJOY5tJkQvUuT"
+          BITWARDEN_TEST_ORGANIZATION: "cda840d2-1de0-4f31-bd49-b30dacd7e8b0"
+          BITWARDEN_DEVICE_ID: "e54ba5f5-7d58-4830-8f2b-99194c70c14f"
 
   lint:
     runs-on: ubuntu-latest

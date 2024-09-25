@@ -1,3 +1,15 @@
+## 1.0.1 (2024-09-25)
+
+### Feat
+
+- **tests**: add tests run to CI
+- **tests**: add models tests and e2e tests
+- **tests**: add fixtures
+
+### Fix
+
+- **lint**: fix mypy typing
+
 ## 1.0.1rc2 (2024-08-14)
 
 ### Fix

@@ -25,6 +25,10 @@ There are 2 types of clients:
 The `reset_account` and `transfer_account_rights` from the Admin client needs a valid Bitwarden client to re-invite the
 target user.
 
+## Installation
+```bash
+pip install python-vaultwarden
+```
 ## Usage
 
 ### Admin client
@@ -76,15 +80,6 @@ if my_user:
 
 ```
 
-## TODO
-- [ ] Add tests form Vaultwarden admin client
-- [ ] Rewrite crypto part to remove dependency on bitwardentools and add argon2id support
-- [ ] Support email + password authentication
-- [ ] Support end user operations
-- [ ] Ciphers management support
-- [ ] Many other things I didn't think of yet
-
-
 ## Credits
 
 The [crypto part](src/vaultwarden/utils/crypto.py) originates from [bitwardentools](https://github.com/corpusops/bitwardentools).
@@ -100,6 +95,35 @@ The [crypto part](src/vaultwarden/utils/crypto.py) originates from [bitwardentoo
 
 [GHAction-link]: https://github.com/numberly/python-vaultwarden/actions?query=event%3Apush+branch%3Amain
 <!-- Links -->
+
+
+## Contributing
+Thank you for being interested in contributing to `python-vaultwarden`. There are many ways you can contribute to the project:
+  - Try and report bugs/issues you find
+  - Implement new features
+  - Review Pull Requests of others
+  - Write documentation
+  - Participate in discussions
+
+### Development
+To start developing create a fork of the python-vaultwarden repository on GitHub.
+
+Then clone your fork with the following command replacing YOUR-USERNAME with your GitHub username:
+
+```bash
+git clone https://github.com/YOUR-USERNAME/python-vaultwarden
+```
+
+You can now install the project and its dependencies using:
+```bash
+pip install -e .[test]
+```
+### Testing
+To run the tests, use:
+
+```bash
+bash tests/e2e/run_tests.sh
+```
 
 ## License
 

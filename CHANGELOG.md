@@ -9,24 +9,9 @@
 ### Fix
 
 - **lint**: fix mypy typing
-
-## 1.0.1rc2 (2024-08-14)
-
-### Fix
-
 - **org-invite**: fix organization invitte payload
 - **cipher-collections**: fix method changing collections of a cipher
-
-## 1.0.1rc1 (2024-08-12)
-
-### Fix
-
 - **sync-seat-null**: Seats value can be null
-
-## 1.0.1rc0 (2024-07-25)
-
-### Fix
-
 - **lint**: import fix
 - **lint**: remove unused import
 - **bitwarden**: fix List model and refresh master_ke when refresh token
@@ -42,8 +27,13 @@
 
 - **pydantic**: Rework Bitwarden Client with pydantic classes + Usage
 
-## 0.7.0 (2023-08-09)
+## 0.7.0 (2023-09-06)
 
-### Features
+### Feat
 
-- **opensource**: First version of the open sourced python lib for Vaultwarden
+- **init**: first version open-sourced
+
+### Fix
+
+- **license**: fix license property and license classifier = fix typo
+- **tests**: fix unit tests

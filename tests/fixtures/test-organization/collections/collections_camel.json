@@ -1,0 +1,27 @@
+{
+  "continuationToken": null,
+  "data": [
+    {
+      "externalId": null,
+      "id": "10370e0f-c916-4ead-9767-c4d75d0ef1f3",
+      "name": "2.UFQ61Bp4hihu31h+WqjjCw==|poUtkoWSw+INpaxsnMp6g5ETt+v0lWNV9rXvxRLx6b8=|AEQzWIqJYoNQ0+ntzdqA76/wsxe4C0SVRS8yz/pio+w=",
+      "object": "collection",
+      "organizationId": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0"
+    },
+    {
+      "externalId": null,
+      "id": "9ed17918-31f6-4ac5-ac82-c11541cd8a7c",
+      "name": "2.ltxXSkSQ94FHxSwVlMBYUw==|wjvJW4JLgw9i9375ujVJnQ==|t2gLT6iyEPsgIlUedbZ+sPWOooGP1zONx6UOiPA4Dx8=",
+      "object": "collection",
+      "organizationId": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0"
+    },
+    {
+      "externalId": null,
+      "id": "3c73f14f-5a01-4016-98bb-9605146a1a49",
+      "name": "2.M5LLRUsBnTovXQuA4DBKLA==|ViL7ZxNENF6j28TjwwoHKN555BU9Wid75uvYyd0munE=|BIgdP+aizz0FrAJk5pTov4wbHME/Qm3GpJ0u1CgR/OE=",
+      "object": "collection",
+      "organizationId": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0"
+    }
+  ],
+  "object": "list"
+}

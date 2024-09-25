@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar, cast
 from uuid import UUID
 
 from pydantic import AliasChoices, Field, TypeAdapter, field_validator
@@ -158,13 +158,15 @@ class OrganizationCollection(BitwardenBaseModel):
         users_payload = []
         if users is not None and len(users) > 0:
             if isinstance(users[0], CollectionUser):
+                users = cast(list[CollectionUser], users)
                 users_payload = [
-                    user.model_dump(  # type: ignore
+                    user.model_dump(
                         exclude={"CollectionId"}, by_alias=True, mode="json"
                     )
                     for user in users
                 ]
             else:
+                users = cast(list[UUID], users)
                 users_payload = [
                     {
                         "id": str(user_id),
@@ -351,28 +353,26 @@ class Organization(BitwardenBaseModel):
     ):
         collections_payload = []
         if collections is not None and len(collections) > 0:
-            assert collections is not None
             for coll in collections:
                 if isinstance(coll, UserCollection):
-                    assert isinstance(coll, UserCollection)
+                    coll = cast(UserCollection, coll)
+                    ex: dict[str, Literal[True]] = {"UserId": True}
                     collections_payload.append(
                         coll.model_dump(
                             by_alias=True,
                             mode="json",
-                            exclude={"UserId": True},
+                            exclude=ex,
                         )
                     )
                 else:
-                    coll_id = ""
                     if isinstance(coll, OrganizationCollection):
-                        assert isinstance(coll, OrganizationCollection)
+                        coll = cast(OrganizationCollection, coll)
                         coll_id = str(coll.Id)
-                    elif isinstance(collections[0], UUID):
-                        assert isinstance(coll, UUID)
+                    elif isinstance(coll, UUID):
+                        coll = cast(UUID, coll)
                         coll_id = str(coll)
                     else:
-                        assert isinstance(coll, str)
-                        coll_id = coll
+                        coll_id = cast(str, coll)
                     collections_payload.append(
                         {
                             "id": coll_id,

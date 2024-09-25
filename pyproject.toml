@@ -39,6 +39,11 @@ dependencies = [
     "pydantic >=2.5.0",
     "httpx >=0.24.1",
 ]
+[dev-dependencies]
+test = [
+  "hatch~=1.12",
+  "pytest~=8.3",
+]
 
 [tool.hatch.version]
 path = "src/vaultwarden/__version__.py"
@@ -68,7 +73,7 @@ test = "coverage run --source=src/vaultwarden -m unittest discover -p 'test_*.py
 _coverage = ["test", "coverage xml", "coverage report --show-missing"]
 with-coverage = "test"
 [[tool.hatch.envs.test.matrix]]
-python = ["3.10", "3.11"]
+python = ["3.10", "3.11", "3.12"]
 type = ["default"]
 [tool.hatch.envs.test.overrides]
 matrix.type.scripts = [

@@ -1,3 +1,9 @@
+## 1.0.2 (2025-05-21)
+
+### Fix
+
+- **api-fields**: fix api fields for vaultwarden v1.33.x
+
 ## 1.0.1 (2024-09-25)
 
 ### Feat

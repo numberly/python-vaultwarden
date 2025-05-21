@@ -91,6 +91,7 @@ class CipherDetails(BitwardenBaseModel):
 class CollectionAccess(BitwardenBaseModel):
     ReadOnly: bool = False
     HidePasswords: bool = False
+    Manage: bool = False
 
 
 class CollectionUser(CollectionAccess):
@@ -154,11 +155,12 @@ class OrganizationCollection(BitwardenBaseModel):
         users: list[CollectionUser] | list[UUID],
         default_readonly: bool = False,
         default_hide_passwords: bool = False,
+        default_manage: bool = False,
     ):
         users_payload = []
         if users is not None and len(users) > 0:
             if isinstance(users[0], CollectionUser):
-                users = cast(list[CollectionUser], users)
+                users = cast("list[CollectionUser]", users)
                 users_payload = [
                     user.model_dump(
                         exclude={"CollectionId"}, by_alias=True, mode="json"
@@ -166,12 +168,13 @@ class OrganizationCollection(BitwardenBaseModel):
                     for user in users
                 ]
             else:
-                users = cast(list[UUID], users)
+                users = cast("list[UUID]", users)
                 users_payload = [
                     {
                         "id": str(user_id),
                         "readOnly": default_readonly,
                         "hidePasswords": default_hide_passwords,
+                        "manage": default_manage,
                     }
                     for user_id in users
                 ]
@@ -203,6 +206,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
     Collections: list[UserCollection]
     Groups: list | None = None
     TwoFactorEnabled: bool
+    Permissions: dict | None = None
 
     @field_validator("OrganizationId")
     @classmethod
@@ -221,6 +225,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                 UserId=self.Id,
                 ReadOnly=False,
                 HidePasswords=False,
+                Manage=False,
             )
             user.bitwarden_client = self.api_client
             self.Collections.append(user)
@@ -231,6 +236,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                         "CollectionId": True,
                         "ReadOnly": True,
                         "HidePasswords": True,
+                        "Manage": True,
                     }
                 },
                 "Groups": True,
@@ -348,14 +354,18 @@ class Organization(BitwardenBaseModel):
         ) = None,
         access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
+        permissions=None,
         default_readonly: bool = False,
         default_hide_passwords: bool = False,
+        default_manage: bool = False,
     ):
+        if permissions is None:
+            permissions = {}
         collections_payload = []
         if collections is not None and len(collections) > 0:
             for coll in collections:
                 if isinstance(coll, UserCollection):
-                    coll = cast(UserCollection, coll)
+                    coll = cast("UserCollection", coll)
                     ex: dict[str, Literal[True]] = {"UserId": True}
                     collections_payload.append(
                         coll.model_dump(
@@ -366,18 +376,19 @@ class Organization(BitwardenBaseModel):
                     )
                 else:
                     if isinstance(coll, OrganizationCollection):
-                        coll = cast(OrganizationCollection, coll)
+                        coll = cast("OrganizationCollection", coll)
                         coll_id = str(coll.Id)
                     elif isinstance(coll, UUID):
-                        coll = cast(UUID, coll)
+                        coll = cast("UUID", coll)
                         coll_id = str(coll)
                     else:
-                        coll_id = cast(str, coll)
+                        coll_id = cast("str", coll)
                     collections_payload.append(
                         {
                             "id": coll_id,
                             "readOnly": default_readonly,
                             "hidePasswords": default_hide_passwords,
+                            "manage": default_manage,
                         }
                     )
 
@@ -387,6 +398,7 @@ class Organization(BitwardenBaseModel):
             "type": user_type,
             "collections": collections_payload,
             "groups": [],
+            "permissions": permissions,
         }
         resp = self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/users/invite", json=payload

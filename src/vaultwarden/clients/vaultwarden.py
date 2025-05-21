@@ -144,7 +144,7 @@ class VaultwardenAdminClient:
             self._load_users()
         return res
 
-    def delete(self, identifier: str) -> bool:
+    def delete(self, identifier: str | UUID) -> bool:
         logger.info(f"Deleting {identifier} account")
         res = True
         try:

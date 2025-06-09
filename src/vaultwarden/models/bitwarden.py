@@ -270,7 +270,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                         "CollectionId",
                         "ReadOnly",
                         "HidePasswords",
-                        "Manage"
+                        "Manage",
                     }
                 },
                 "Groups": True,
@@ -308,7 +308,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                             "CollectionId",
                             "ReadOnly",
                             "HidePasswords",
-                            "Manage"
+                            "Manage",
                         }
                     },
                     "Groups": True,

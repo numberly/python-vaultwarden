@@ -199,7 +199,6 @@ class OrganizationUserDetails(BitwardenBaseModel):
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Status: int
     Type: OrganizationUserType
-    AccessAll: bool
     ExternalId: str | None
     Key: str | None = None
     ResetPasswordKey: str | None = None
@@ -241,7 +240,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                 },
                 "Groups": True,
                 "Type": True,
-                "AccessAll": True,
+                "Permissions": True,
             },
             by_alias=True,
             mode="json",
@@ -273,7 +272,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                 },
                 "Groups": True,
                 "Type": True,
-                "AccessAll": True,
+                "Permissions": True,
             },
             by_alias=True,
             mode="json",
@@ -308,7 +307,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
                     },
                     "Groups": True,
                     "Type": True,
-                    "AccessAll": True,
+                    "Permissions": True,
                 },
                 by_alias=True,
                 mode="json",
@@ -352,15 +351,17 @@ class Organization(BitwardenBaseModel):
             | list[str]
             | None
         ) = None,
-        access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
         permissions=None,
+        groups: list[UUID] | None = None,
         default_readonly: bool = False,
         default_hide_passwords: bool = False,
         default_manage: bool = False,
     ):
         if permissions is None:
             permissions = {}
+        if groups is None:
+            groups = []
         collections_payload = []
         if collections is not None and len(collections) > 0:
             for coll in collections:
@@ -394,10 +395,9 @@ class Organization(BitwardenBaseModel):
 
         payload = {
             "emails": [email],
-            "accessAll": access_all,
             "type": user_type,
             "collections": collections_payload,
-            "groups": [],
+            "groups": groups,
             "permissions": permissions,
         }
         resp = self.api_client.api_request(

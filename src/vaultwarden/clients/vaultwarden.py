@@ -218,8 +218,9 @@ class VaultwardenAdminClient:
                 org.invite(
                     email,
                     collections=user_details.Collections,
-                    access_all=user_details.AccessAll,
                     user_type=user_details.Type,
+                    groups=user_details.Groups,
+                    permissions=user_details.Permissions,
                 )
         if len(orgs) == 0:
             logger.warning("No organisation in the rights")
@@ -254,7 +255,8 @@ class VaultwardenAdminClient:
                 org.invite(
                     new_email,
                     collections=user_details.Collections,
-                    access_all=user_details.AccessAll,
                     user_type=user_details.Type,
+                    groups=user_details.Groups,
+                    permissions=user_details.Permissions,
                 )
         self.set_user_enabled(str(user.Id), enabled=False)

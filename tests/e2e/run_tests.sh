@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ -z "${VAULTWARDEN_VERSION}" ]]; then
-  VAULTWARDEN_VERSION="1.33.2"
+  VAULTWARDEN_VERSION="1.34.1"
 fi
 
 temp_dir=$(mktemp -d)
@@ -12,7 +12,7 @@ cp tests/fixtures/server/* $temp_dir
 # Start Vaultwarden docker
 docker run -d --name vaultwarden -v $temp_dir:/data  --env I_REALLY_WANT_VOLATILE_STORAGE=true --env ADMIN_TOKEN=admin  --restart unless-stopped -p 80:80 vaultwarden/server:${VAULTWARDEN_VERSION}
 
-#exit 0
+exit 0
 
 # Wait for vaultwarden to start
 sleep 3

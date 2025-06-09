@@ -205,7 +205,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
     Collections: list[UserCollection]
     Groups: list | None = None
     TwoFactorEnabled: bool
-    Permissions: dict | None = None
+    Permissions: dict | None = Field(default_factory=dict)
 
     @field_validator("OrganizationId")
     @classmethod
@@ -240,7 +240,9 @@ class OrganizationUserDetails(BitwardenBaseModel):
                 },
                 "Groups": True,
                 "Type": True,
-                "Permissions": True,
+            },
+            exclude={
+                "Permissions": self.Permissions is None,
             },
             by_alias=True,
             mode="json",
@@ -268,11 +270,14 @@ class OrganizationUserDetails(BitwardenBaseModel):
                         "CollectionId",
                         "ReadOnly",
                         "HidePasswords",
+                        "Manage"
                     }
                 },
                 "Groups": True,
                 "Type": True,
-                "Permissions": True,
+            },
+            exclude={
+                "Permissions": self.Permissions is None,
             },
             by_alias=True,
             mode="json",
@@ -303,11 +308,14 @@ class OrganizationUserDetails(BitwardenBaseModel):
                             "CollectionId",
                             "ReadOnly",
                             "HidePasswords",
+                            "Manage"
                         }
                     },
                     "Groups": True,
                     "Type": True,
-                    "Permissions": True,
+                },
+                exclude={
+                    "Permissions": self.Permissions is None,
                 },
                 by_alias=True,
                 mode="json",

@@ -74,7 +74,7 @@ class UserProfile(PermissiveBaseModel):
     ForcePasswordReset: bool
     Id: UUID
     Key: str
-    MasterPasswordHint: str | None
+    MasterPasswordHint: str | None = None
     Name: str
     Object: str | None
     Organizations: list[ProfileOrganization]

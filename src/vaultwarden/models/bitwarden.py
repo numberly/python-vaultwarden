@@ -199,14 +199,13 @@ class OrganizationUserDetails(BitwardenBaseModel):
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Status: int
     Type: OrganizationUserType
-    AccessAll: bool
     ExternalId: str | None
     Key: str | None = None
     ResetPasswordKey: str | None = None
     Collections: list[UserCollection]
     Groups: list | None = None
     TwoFactorEnabled: bool
-    Permissions: dict | None = None
+    Permissions: dict | None = Field(default_factory=dict)
 
     @field_validator("OrganizationId")
     @classmethod
@@ -241,7 +240,9 @@ class OrganizationUserDetails(BitwardenBaseModel):
                 },
                 "Groups": True,
                 "Type": True,
-                "AccessAll": True,
+            },
+            exclude={
+                "Permissions": self.Permissions is None,
             },
             by_alias=True,
             mode="json",
@@ -269,11 +270,14 @@ class OrganizationUserDetails(BitwardenBaseModel):
                         "CollectionId",
                         "ReadOnly",
                         "HidePasswords",
+                        "Manage",
                     }
                 },
                 "Groups": True,
                 "Type": True,
-                "AccessAll": True,
+            },
+            exclude={
+                "Permissions": self.Permissions is None,
             },
             by_alias=True,
             mode="json",
@@ -304,11 +308,14 @@ class OrganizationUserDetails(BitwardenBaseModel):
                             "CollectionId",
                             "ReadOnly",
                             "HidePasswords",
+                            "Manage",
                         }
                     },
                     "Groups": True,
                     "Type": True,
-                    "AccessAll": True,
+                },
+                exclude={
+                    "Permissions": self.Permissions is None,
                 },
                 by_alias=True,
                 mode="json",
@@ -352,15 +359,17 @@ class Organization(BitwardenBaseModel):
             | list[str]
             | None
         ) = None,
-        access_all: bool = False,
         user_type: OrganizationUserType = OrganizationUserType.User,
         permissions=None,
+        groups: list[UUID] | None = None,
         default_readonly: bool = False,
         default_hide_passwords: bool = False,
         default_manage: bool = False,
     ):
         if permissions is None:
             permissions = {}
+        if groups is None:
+            groups = []
         collections_payload = []
         if collections is not None and len(collections) > 0:
             for coll in collections:
@@ -394,10 +403,9 @@ class Organization(BitwardenBaseModel):
 
         payload = {
             "emails": [email],
-            "accessAll": access_all,
             "type": user_type,
             "collections": collections_payload,
-            "groups": [],
+            "groups": groups,
             "permissions": permissions,
         }
         resp = self.api_client.api_request(

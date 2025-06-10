@@ -1,3 +1,9 @@
+## 1.0.3 (2025-06-10)
+
+### Fix
+
+- **permissions**: remove AccessAll field and add detailed permissions/groups  (#23)
+
 ## 1.0.2 (2025-05-21)
 
 ### Fix

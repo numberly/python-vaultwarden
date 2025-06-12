@@ -157,12 +157,54 @@ class VaultwardenAdminClient:
             self._load_users()
         return res
 
+    def disable(self, identifier: str | UUID) -> bool:
+        logger.info(f"Disabling {identifier} account")
+        res = True
+        try:
+            self._admin_request(
+                "POST",
+                f"users/{identifier}/disable",
+                headers={"Content-Type": "application/json"},
+            )
+        except HTTPStatusError:
+            res = False
+        if not res:
+            logger.warning(f"Failed to disable {identifier}")
+        else:
+            self._load_users()
+        return res
+
+    def enable(self, identifier: str | UUID) -> bool:
+        logger.info(f"Enabling {identifier} account")
+        res = True
+        try:
+            self._admin_request(
+                "POST",
+                f"users/{identifier}/enable",
+                headers={"Content-Type": "application/json"},
+            )
+        except HTTPStatusError:
+            res = False
+        if not res:
+            logger.warning(f"Failed to enable {identifier}")
+        else:
+            self._load_users()
+        return res
+
     def set_user_enabled(self, identifier: str | UUID, enabled: bool) -> None:
         """Disabling a user also deauthorizes all its sessions"""
         if enabled:
-            resp = self._admin_request("POST", f"users/{identifier}/enable")
+            resp = self._admin_request(
+                "POST",
+                f"users/{identifier}/enable",
+                headers={"Content-Type": "application/json"},
+            )
         else:
-            resp = self._admin_request("POST", f"users/{identifier}/disable")
+            resp = self._admin_request(
+                "POST",
+                f"users/{identifier}/disable",
+                headers={"Content-Type": "application/json"},
+            )
         resp.raise_for_status()
 
     def remove_2fa(self, uuid=None, email=None) -> bool:

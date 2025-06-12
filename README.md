@@ -36,14 +36,23 @@ pip install python-vaultwarden
 ```python
 from vaultwarden.clients.vaultwarden import VaultwardenAdminClient
 
-client = VaultwardenAdminClient(url="https://vaultwarden.example.com", admin_secret_token="admin_token")
+client = VaultwardenAdminClient(url="https://vaultwarden.example.com", admin_secret_token="admin_token", preload_users=True)
 
 client.invite("john.doe@example.com")
 
-all_users = client.get_all_users()
+# Get all users
+all_users = client.users()
 
-client.delete(all_users[0].id)
+# Get a specific user by email
+user = client.user(email="example@example.com")
 
+# Delete/Disable/Enable a user by ID
+client.delete(user.Id)
+client.disable(user.Id)
+client.enable(user.Id)
+
+# Set enabled status of a user
+client.set_user_enabled(user.Id, enabled=True)
 ```
 
 ### Bitwarden client

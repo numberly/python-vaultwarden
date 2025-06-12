@@ -160,9 +160,17 @@ class VaultwardenAdminClient:
     def set_user_enabled(self, identifier: str | UUID, enabled: bool) -> None:
         """Disabling a user also deauthorizes all its sessions"""
         if enabled:
-            resp = self._admin_request("POST", f"users/{identifier}/enable")
+            resp = self._admin_request(
+                "POST",
+                f"users/{identifier}/enable",
+                headers={"Content-Type": "application/json"},
+            )
         else:
-            resp = self._admin_request("POST", f"users/{identifier}/disable")
+            resp = self._admin_request(
+                "POST",
+                f"users/{identifier}/disable",
+                headers={"Content-Type": "application/json"},
+            )
         resp.raise_for_status()
 
     def remove_2fa(self, uuid=None, email=None) -> bool:

@@ -1,3 +1,9 @@
+## 1.0.4 (2025-06-16)
+
+### Fix
+
+- **admin-client**: fix readme example and fix disable/enable method for users managment (#25)
+
 ## 1.0.3 (2025-06-10)
 
 ### Fix

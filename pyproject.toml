@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "python-vaultwarden"
-version = "1.0.3"
+version = "1.0.4"
 description = "Admin Vaultwarden and Simple Bitwarden Python Client"
 authors = [
     { name = "Lyonel Martinez", email = "lyonel.martinez@numberly.com" },
@@ -149,7 +149,7 @@ plugins = [
 ]
 
 [tool.commitizen]
-version = "1.0.3"
+version = "1.0.4"
 tag_format = "$version"
 update_changelog_on_bump = true
 version_files = [

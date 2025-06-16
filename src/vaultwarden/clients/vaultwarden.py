@@ -133,63 +133,55 @@ class VaultwardenAdminClient:
 
     # User Management Part
     def invite(self, email: str) -> bool:
-        res = True
         try:
             self._admin_request("POST", "invite", json={"email": email})
         except HTTPStatusError as e:
-            res = e.response.status_code == http.HTTPStatus.CONFLICT
-        if not res:
-            logger.warning(f"Failed to invite {email}")
-        else:
-            self._load_users()
-        return res
+            if e.response.status_code != http.HTTPStatus.CONFLICT:
+                logger.warning(f"Failed to invite {email} {e}")
+                return False
+        self._load_users()
+        return True
 
     def delete(self, identifier: str | UUID) -> bool:
         logger.info(f"Deleting {identifier} account")
-        res = True
         try:
             self._admin_request("POST", f"users/{identifier}/delete")
-        except HTTPStatusError:
-            res = False
-        if not res:
-            logger.warning(f"Failed to delete {identifier}")
-        else:
-            self._load_users()
-        return res
+        except HTTPStatusError as e:
+            logger.warning(f"Failed to delete {identifier} {e}")
+            return False
+        self._load_users()
+        logger.info(f"Successfully deleted account: {identifier}")
+        return True
 
     def disable(self, identifier: str | UUID) -> bool:
         logger.info(f"Disabling {identifier} account")
-        res = True
         try:
             self._admin_request(
                 "POST",
                 f"users/{identifier}/disable",
                 headers={"Content-Type": "application/json"},
             )
-        except HTTPStatusError:
-            res = False
-        if not res:
-            logger.warning(f"Failed to disable {identifier}")
-        else:
-            self._load_users()
-        return res
+        except HTTPStatusError as e:
+            logger.warning(f"Failed to disable {identifier} {e}")
+            return False
+        self._load_users()
+        logger.info(f"Successfully disabled account: {identifier}")
+        return True
 
     def enable(self, identifier: str | UUID) -> bool:
         logger.info(f"Enabling {identifier} account")
-        res = True
         try:
             self._admin_request(
                 "POST",
                 f"users/{identifier}/enable",
                 headers={"Content-Type": "application/json"},
             )
-        except HTTPStatusError:
-            res = False
-        if not res:
-            logger.warning(f"Failed to enable {identifier}")
-        else:
-            self._load_users()
-        return res
+        except HTTPStatusError as e:
+            logger.warning(f"Failed to enable {identifier} {e}")
+            return False
+        self._load_users()
+        logger.info(f"Successfully enabled account: {identifier}")
+        return True
 
     def set_user_enabled(self, identifier: str | UUID, enabled: bool) -> None:
         """Disabling a user also deauthorizes all its sessions"""

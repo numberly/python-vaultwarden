@@ -67,10 +67,11 @@ class BitwardenAPIClient:
         )
         self._connect_token = ConnectToken.model_validate_json(resp.text)
 
+        import vaultwarden.models.bitwarden
         self._connect_token.master_key = make_master_key(
             password=self.password,
             salt=self.email,
-            iterations=self._connect_token.KdfIterations,
+            kdf=vaultwarden.models.bitwarden.Kdf.from_ConnectToken(self._connect_token),
         )
 
     def _set_connect_token(self):
@@ -91,10 +92,11 @@ class BitwardenAPIClient:
             "identity/connect/token", headers=headers, data=payload
         )
         self._connect_token = ConnectToken.model_validate_json(resp.text)
+        import vaultwarden.models.bitwarden
         self._connect_token.master_key = make_master_key(
             password=self.password,
             salt=self.email,
-            iterations=self._connect_token.KdfIterations,
+            kdf=vaultwarden.models.bitwarden.Kdf.from_ConnectToken(self._connect_token),
         )
 
     # login to api

@@ -1,14 +1,33 @@
-from typing import Generic, Literal, TypeVar, cast
+from typing import Generic, Literal, TypeVar, cast, Any, Self, Annotated, Union
 from uuid import UUID
+import datetime
 
-from pydantic import AliasChoices, Field, TypeAdapter, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
+from pydantic import (
+    AliasChoices,
+    Field,
+    TypeAdapter,
+    field_validator,
+    RootModel,
+    PrivateAttr,
+    model_validator,
+    ValidationError,
+    ModelWrapValidatorHandler,
+    WrapValidator,
+    AfterValidator,
+)
+from pydantic_core.core_schema import (
+    FieldValidationInfo,
+    ValidationInfo,
+    ValidatorFunctionWrapHandler,
+)
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.enum import CipherType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
 from vaultwarden.utils.crypto import decrypt, encrypt
+
+from src.vaultwarden.models.enum import KdfType
 
 # Pydantic models for Bitwarden data structures
 
@@ -37,12 +56,177 @@ class BitwardenBaseModel(PermissiveBaseModel):
         return self.bitwarden_client
 
 
-class CipherDetails(BitwardenBaseModel):
+def decodeBytes(
+    value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+) -> str:
+    for key in info.context["cctx"][::-1]:
+        try:
+            return decrypt(handler(value), key)
+        except Exception as e:
+            continue
+    raise e
+
+
+def decodeString(
+    value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+) -> str:
+    return decodeBytes(value, handler, info=info).decode("utf-8")
+
+
+class UriMatch(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    match: int | None = None
+    uri: Annotated[str, WrapValidator(decodeString)] | None = None
+    uriChecksum: Annotated[str, WrapValidator(decodeString)] | None = None
+    response: str | None = None
+
+
+class XField(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    name: Annotated[str, WrapValidator(decodeString)] | None = None
+    response: Annotated[str, WrapValidator(decodeString)] | None = None
+    type: int
+    value: Annotated[str, WrapValidator(decodeString)] | None = None
+    linkedId: str | None = None
+
+
+class CipherLogin(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    name: Annotated[str, WrapValidator(decodeString)] | None = None
+    autofillOnPageLoad: bool | None = None
+    password: Annotated[str, WrapValidator(decodeString)] | None = None
+    passwordRevisionDate: datetime.datetime | None = None
+    totp: str | None = None
+    uri: Annotated[str, WrapValidator(decodeString)] | None = None
+    uris: list[UriMatch] | None = None
+    username: Annotated[str, WrapValidator(decodeString)] | None = None
+    notes: Annotated[str, WrapValidator(decodeString)] | None = None
+
+
+class PasswordChange(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    lastUsedDate: datetime.datetime
+    password: str
+
+
+class fido2Credential(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    counter: Annotated[str, WrapValidator(decodeString)] | None = None
+    creationDate: datetime.datetime | None = None
+    credentialId: Annotated[str, WrapValidator(decodeString)] | None = None
+    discoverable: Annotated[str, WrapValidator(decodeString)] | None = None
+    keyAlgorithm: Annotated[str, WrapValidator(decodeString)] | None = None
+    keyCurve: Annotated[str, WrapValidator(decodeString)] | None = None
+    keyType: Annotated[str, WrapValidator(decodeString)] | None = None
+    keyValue: Annotated[str, WrapValidator(decodeString)] | None = None
+    response: str | None = None
+    rpId: Annotated[str, WrapValidator(decodeString)] | None = None
+    rpName: Annotated[str, WrapValidator(decodeString)] | None = None
+    userDisplayName: Annotated[str, WrapValidator(decodeString)] | None = None
+    userHandle: Annotated[str, WrapValidator(decodeString)] | None = None
+    userName: Annotated[str, WrapValidator(decodeString)] | None = None
+
+
+class LoginData(CipherLogin):
+    class Config:
+        extra = "forbid"
+
+    fields: list[XField] | None = None
+    passwordHistory: list[PasswordChange] | None = None
+    response: str | None = None
+    fido2Credentials: list[fido2Credential] | None = None
+
+
+class SecureNoteData(CipherLogin):
+    class Config:
+        extra = "forbid"
+
+    fields: list[XField]
+    passwordHistory: list[PasswordChange]
+    response: str | None = None
+    type: int | None = None
+
+
+class SecureNoteProperty(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    name: Annotated[str, WrapValidator(decodeString)] | None = None
+    notes: Annotated[str, WrapValidator(decodeString)] | None = None
+    fields: list[XField] | None = None
+    passwordHistory: list[PasswordChange] | None = None
+    response: Annotated[str, WrapValidator(decodeString)] | None = None
+    type: int
+
+
+class Attachment(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    fileName: Annotated[str, WrapValidator(decodeString)] | None = None
+    id: str
+    key: str | None = (
+        None  # Annotated[str, WrapValidator(decodeBytes)]|None = None
+    )
+    object: str
+    size: int
+    sizeName: str
+    url: str
+
+
+class _CipherBase(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
     Id: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Type: CipherType
-    Name: str
+    Name: Annotated[str, WrapValidator(decodeString)]
     CollectionIds: list[UUID]
+    key: str | None = None
+
+    organizationUseTotp: bool | None = None
+    creationDate: datetime.datetime | None = None
+    deletedDate: datetime.datetime | None = None
+    fields: list[XField] | None = None
+
+    notes: Annotated[str, WrapValidator(decodeString)] | None = None
+    reprompt: int
+    revisionDate: str
+    sshKey: str | None
+    passwordHistory: list[PasswordChange]
+    object: str | None = None
+    attachments: list[Attachment] | None = None
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        if data.get("key") is not None:
+            info.context["cctx"].append(
+                decrypt(data["key"], info.context["cctx"][0])
+            )
+
+        v = handler(data)
+
+        if data.get("key") is not None:
+            info.context["cctx"].pop()
+
+        return v
 
     @field_validator("OrganizationId")
     @classmethod
@@ -86,6 +270,55 @@ class CipherDetails(BitwardenBaseModel):
             f"api/ciphers/{self.Id}/collections",
             json={"collectionIds": dump},
         )
+
+
+class Login(_CipherBase):
+    Type: Literal[1]
+
+    login: LoginData | None = None
+    secureNote: None = None
+    card: None = None
+    identity: None = None
+
+    data: LoginData | None = None
+
+
+class SecureNote(_CipherBase):
+    Type: Literal[2]
+
+    login: None = None
+    secureNote: SecureNoteProperty | None = None
+    card: None = None
+    identity: None = None
+
+    data: SecureNoteData | None = None
+
+
+class Card(_CipherBase):
+    Type: Literal[3]
+
+    login: None = None
+    card: None = None
+    secureNote: None = None
+    identity: None = None
+
+    data: None = None
+
+
+class Identity(_CipherBase):
+    Type: Literal[4]
+
+    login: None = None
+    secureNote: None = None
+    card: None = None
+    identity: None = None
+
+    data: None = None
+
+
+CipherDetails = Annotated[
+    Union[Login, SecureNote, Card, Identity], Field(discriminator="Type")
+]
 
 
 class CollectionAccess(BitwardenBaseModel):
@@ -550,14 +783,15 @@ class Organization(BitwardenBaseModel):
             "api/ciphers/organization-details",
             params={"organizationId": self.Id},
         )
+        org_key = self.key()
         res = ResplistBitwarden[CipherDetails].model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.api_client},
+            context={
+                "parent_id": self.Id,
+                "client": self.api_client,
+                "cctx": [org_key],
+            },
         )
-        org_key = self.key()
-        # map each cipher name to the decrypted name
-        for cipher in res.Data:
-            cipher.Name = decrypt(cipher.Name, org_key).decode("utf-8")
         return res.Data
 
     def ciphers(
@@ -581,14 +815,12 @@ class Organization(BitwardenBaseModel):
 
     def key(self):
         sync = self.api_client.sync()
-        raw_key = None
         for org in sync.Profile.Organizations:
             if org.Id == self.Id:
-                raw_key = org.Key
                 break
-        if raw_key is not None:
-            return decrypt(raw_key, self.api_client.connect_token.orgs_key)
-        raise BitwardenError(f"No Organizations `{self.Id}` found")
+        else:
+            raise BitwardenError(f"No Organizations `{self.Id}` found")
+        return decrypt(org.Key, self.api_client.connect_token.orgs_key)
 
 
 def get_organization(
@@ -601,3 +833,25 @@ def get_organization(
         resp.text,
         context={"client": bitwarden_client, "parent_id": organisation_id},
     )
+
+
+import dataclasses
+
+
+@dataclasses.dataclass
+class Kdf:
+    Kdf: KdfType
+    KdfIterations: int | None = None
+    KdfMemory: int | None = None
+    KdfParallelism: int | None = None
+
+    @classmethod
+    def from_ConnectToken(
+        cls, token: "vaultwarden.clients.bitwarden.ConnectToken"
+    ):
+        return cls(
+            token.Kdf,
+            token.KdfIterations,
+            token.KdfMemory,
+            token.KdfParallelism,
+        )

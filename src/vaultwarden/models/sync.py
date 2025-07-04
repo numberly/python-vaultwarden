@@ -1,15 +1,18 @@
 import time
 from uuid import UUID
 
+import pydantic
 from pydantic import AliasChoices, Field, field_validator
 
 from vaultwarden.models.enum import VaultwardenUserStatus
 from vaultwarden.models.permissive_model import PermissiveBaseModel
 from vaultwarden.utils.crypto import decrypt
 
+from src.vaultwarden.models.enum import KdfType
+
 
 class ConnectToken(PermissiveBaseModel):
-    Kdf: int = 0
+    Kdf: KdfType = KdfType.Pbkdf2
     KdfIterations: int = 0
     KdfMemory: int | None = None
     KdfParallelism: int | None = None
@@ -22,7 +25,8 @@ class ConnectToken(PermissiveBaseModel):
     scope: str
     unofficialServer: bool = False
     ResetMasterPassword: bool | None = None
-    master_key: bytes | None = None
+
+    master_key: bytes | None = None  # pydantic.PrivateAttr(default=None)
 
     @field_validator("expires_in")
     @classmethod

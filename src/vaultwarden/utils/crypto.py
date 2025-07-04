@@ -19,7 +19,6 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from hkdf import hkdf_expand
 
-
 class CIPHERS(IntEnum):
     sym = 2
     asym = 4
@@ -69,6 +68,7 @@ def decode_cipher_string(cipher_string):
     """decode a cipher tring into it's parts"""
     iv = None
     mac = None
+    assert cipher_string is not None
     if not ENCRYPTED_STRING_RE.match(cipher_string):
         raise WrongFormatError(f"{cipher_string}")
     try:
@@ -114,14 +114,25 @@ def is_encrypted(cipher_string):
         return True
 
 
-def make_master_key(password, salt, iterations=ITERATIONS):
-    salt = salt.lower()
-    if not hasattr(password, "decode"):
-        password = password.encode("utf-8")
-    if not hasattr(salt, "decode"):
-        salt = salt.encode("utf-8")
-    return pbkdf2_hmac("sha256", password, salt, iterations)
+def make_master_key(
+    password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"
+):
+    import vaultwarden.models.bitwarden
 
+    assert isinstance(salt, str)
+    assert isinstance(password, str)
+
+    salt = salt.lower()
+    password = password.encode("utf-8")
+    salt = salt.encode("utf-8")
+
+    match kdf.Kdf:
+        case vaultwarden.models.bitwarden.KdfType.Pbkdf2:
+            return pbkdf2_hmac("sha256", password, salt, kdf.KdfIterations)
+        case vaultwarden.models.bitwarden.KdfType.Argon2:
+            raise NotImplementedError("x")
+        case _:
+            return None
 
 def hash_password(password, salt, iterations=ITERATIONS):
     """base64-encode a wrapped, stretched password+salt(email) for signup/login"""

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [[ -z "${VAULTWARDEN_VERSION}" ]]; then
-  VAULTWARDEN_VERSION="1.34.1"
+  VAULTWARDEN_VERSION="1.34.3"
 fi
 
 temp_dir=$(mktemp -d)

@@ -92,7 +92,7 @@ if my_user:
 ## Compatibility
 
 This library is compatible with vaultwarden 1.32.0 and above.
-It is tested against vaultwarden 1.32.5, 1.33.2, and 1.34.1.
+It is tested against vaultwarden 1.32.5, 1.33.2, and 1.34.3.
 
 python-vaultwarden <= v1.0.2 is compatible with vaultwarden from v1.30.0 up to v1.33.2.
 

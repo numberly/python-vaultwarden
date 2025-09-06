@@ -219,7 +219,7 @@ def decrypt_sym(dct, key, div, dmac, *a, **kw):
     hdmac = hmac_new(mac, div + dct, sha256).digest()
     if hdmac != dmac:
         raise DecryptError(
-            f"Symetric hmac verification failed {hdmac} / {dmac}"
+            f"Symmetric hmac verification failed {bytes(hdmac).hex()} / {bytes(dmac).hex()}. Check your password."
         )
     c = AES.new(enc, AES.MODE_CBC, div)
     plaintext = c.decrypt(dct)

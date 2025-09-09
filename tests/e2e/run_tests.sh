@@ -4,13 +4,15 @@ if [[ -z "${VAULTWARDEN_VERSION}" ]]; then
   VAULTWARDEN_VERSION="1.34.3"
 fi
 
+export VAULTWARDEN_INVITATIONS_ALLOWED="false"
+
 temp_dir=$(mktemp -d)
 
 # Copy fixtures db to tmp
 cp tests/fixtures/server/* $temp_dir
 
 # Start Vaultwarden docker
-docker run -d --name vaultwarden -v $temp_dir:/data  --env I_REALLY_WANT_VOLATILE_STORAGE=true --env ADMIN_TOKEN=admin  --restart unless-stopped -p 80:80 vaultwarden/server:${VAULTWARDEN_VERSION}
+docker run -d --name vaultwarden -v $temp_dir:/data --env INVITATIONS_ALLOWED=${VAULTWARDEN_INVITATIONS_ALLOWED} --env I_REALLY_WANT_VOLATILE_STORAGE=true --env ADMIN_TOKEN=admin  --restart unless-stopped -p 80:80 vaultwarden/server:${VAULTWARDEN_VERSION}
 
 exit 0
 

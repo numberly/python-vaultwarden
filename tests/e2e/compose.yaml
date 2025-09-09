@@ -1,0 +1,13 @@
+services:
+  vaultwarden:
+    image: vaultwarden/server:${VAULTWARDEN_VERSION}
+    container_name: python_vaultwarden_test
+    ports:
+      - "8080:80"
+    volumes:
+      - ./temp:/data
+    environment:
+      INVITATIONS_ALLOWED: ${VAULTWARDEN_INVITATIONS_ALLOWED}
+      I_REALLY_WANT_VOLATILE_STORAGE: "true"
+      ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}
+    restart: unless-stopped

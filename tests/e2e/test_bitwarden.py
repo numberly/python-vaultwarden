@@ -4,6 +4,8 @@ import unittest
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
 
+from .docker_helper import start_docker, stop_docker
+
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)
 email = os.environ.get("BITWARDEN_EMAIL", None)
@@ -11,17 +13,21 @@ password = os.environ.get("BITWARDEN_PASSWORD", None)
 client_id = os.environ.get("BITWARDEN_CLIENT_ID", None)
 client_secret = os.environ.get("BITWARDEN_CLIENT_SECRET", None)
 device_id = os.environ.get("BITWARDEN_DEVICE_ID", None)
-bitwarden = BitwardenAPIClient(
-    url, email, password, client_id, client_secret, device_id
-)
 
 # Get test organization id from environment variables
 test_organization = os.environ.get("BITWARDEN_TEST_ORGANIZATION", None)
 
 
 class BitwardenBasic(unittest.TestCase):
+    def tearDownClass() -> None:
+        stop_docker()
+
     def setUp(self) -> None:
-        self.organization = get_organization(bitwarden, test_organization)
+        start_docker()
+        self.bitwarden = BitwardenAPIClient(
+            url, email, password, client_id, client_secret, device_id
+        )
+        self.organization = get_organization(self.bitwarden, test_organization)
         self.test_colls_names = self.organization.collections(as_dict=True)
         self.test_colls_ids = self.organization.collections()
         self.test_users = self.organization.users()
@@ -38,6 +44,9 @@ class BitwardenBasic(unittest.TestCase):
         self.test_collection_2_users = self.test_colls_names.get(
             "test-collection-2"
         ).users()
+
+    def tearDown(self) -> None:
+        stop_docker()
 
     def test_get_organization_users(self):
         self.assertEqual(len(self.test_users), 2)

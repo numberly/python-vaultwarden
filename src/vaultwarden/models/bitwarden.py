@@ -1,5 +1,6 @@
 from typing import Generic, Literal, TypeVar, cast
 from uuid import UUID
+from base64 import b64decode
 
 from pydantic import AliasChoices, Field, TypeAdapter, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
@@ -8,7 +9,7 @@ from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.enum import CipherType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
-from vaultwarden.utils.crypto import decrypt, encrypt
+from vaultwarden.utils.crypto import decrypt, encrypt, encrypt_asym
 
 # Pydantic models for Bitwarden data structures
 
@@ -422,6 +423,30 @@ class Organization(BitwardenBaseModel):
         )
         self._users = self._get_users()
         return resp
+
+    def confirm(
+        self,
+        new_user: OrganizationUserDetails,
+    ):
+        rsa_public_key_new_user = b64decode(self.get_public_key_for_user(new_user.UserId))
+        org_key_decrypted = self.key()
+        key = encrypt_asym(org_key_decrypted, rsa_public_key_new_user)
+
+        payload = {
+            "key": key,
+        }
+        resp = self.api_client.api_request(
+            "POST", f"api/organizations/{self.Id}/users/{new_user.Id}/confirm", json=payload
+        )
+        self._users = self._get_users()
+        return resp
+    
+    def get_public_key_for_user(self, user_id: UUID | str):
+        resp = self.api_client.api_request(
+            "GET", f"api/users/{user_id}/public-key"
+        )
+        resp.raise_for_status()
+        return resp.json().get("publicKey")
 
     def _get_users(self) -> list[OrganizationUserDetails]:
         resp = self.api_client.api_request(

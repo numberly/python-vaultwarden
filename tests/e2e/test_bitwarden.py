@@ -105,6 +105,14 @@ class BitwardenBasic(unittest.TestCase):
         self.assertIsNotNone(user)
         user.delete()
 
+    def test_rename_organization(self):
+        old_name = self.organization.Name
+        new_name = "new_test_organization"
+        self.organization.rename(new_name)
+        self.assertEqual(self.organization.Name, new_name)
+        self.organization.rename(old_name)
+        self.assertEqual(self.organization.Name, old_name)
+
     def test_add_remove_collection_cipher(self):
         cipher = self.test_org_ciphers[0]
         old_colls = cipher.CollectionIds

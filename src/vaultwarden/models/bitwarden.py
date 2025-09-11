@@ -351,14 +351,10 @@ class Organization(BitwardenBaseModel):
         return v
 
     def rename(self, new_name: str):
-        payload = {
-            "name": new_name,
-            "billingEmail": self.BillingEmail
-        }
+        payload = {"name": new_name, "billingEmail": self.BillingEmail}
         resp = self.api_client.api_request(
             "PUT", f"api/organizations/{self.Id}", json=payload
         )
-        resp.raise_for_status()
         self.Name = new_name
         return resp
 

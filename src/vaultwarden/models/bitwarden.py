@@ -337,6 +337,7 @@ class CollectionCipher(BitwardenBaseModel):
 class Organization(BitwardenBaseModel):
     Id: UUID | None = Field(None, validate_default=True)
     Name: str
+    BillingEmail: str
     Object: str | None
     _collections: list[OrganizationCollection] | None = None
     _users: list[OrganizationUserDetails] | None = None
@@ -348,6 +349,14 @@ class Organization(BitwardenBaseModel):
         if v is None and info.context is not None:
             return info.context.get("parent_id")
         return v
+
+    def rename(self, new_name: str):
+        payload = {"name": new_name, "billingEmail": self.BillingEmail}
+        resp = self.api_client.api_request(
+            "PUT", f"api/organizations/{self.Id}", json=payload
+        )
+        self.Name = new_name
+        return resp
 
     def invite(
         self,

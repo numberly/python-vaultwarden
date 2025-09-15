@@ -123,6 +123,11 @@ class BitwardenBasic(unittest.TestCase):
         self.assertEqual(len(res[0].CollectionIds), 2)
         cipher.update_collection(old_colls)
 
+    def test_add_organsiation(self):
+        res = self.bitwarden.create_organisation("test_me", "me@example.com")
+        self.assertTrue(res.is_success)
+
+
     def test_deduplicate(self):
         # Todo build test fixtures and delete them at the end of the test
         return

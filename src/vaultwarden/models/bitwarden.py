@@ -428,7 +428,7 @@ class Organization(BitwardenBaseModel):
         self,
         new_user: OrganizationUserDetails,
     ):
-        rsa_public_key_new_user = b64decode(self.get_public_key_for_user(new_user.UserId))
+        rsa_public_key_new_user = b64decode(self.api_client.get_public_key_for_user(new_user.UserId))
         org_key_decrypted = self.key()
         key = encrypt_asym(org_key_decrypted, rsa_public_key_new_user)
 
@@ -440,13 +440,6 @@ class Organization(BitwardenBaseModel):
         )
         self._users = self._get_users()
         return resp
-    
-    def get_public_key_for_user(self, user_id: UUID | str):
-        resp = self.api_client.api_request(
-            "GET", f"api/users/{user_id}/public-key"
-        )
-        resp.raise_for_status()
-        return resp.json().get("publicKey")
 
     def _get_users(self) -> list[OrganizationUserDetails]:
         resp = self.api_client.api_request(

@@ -105,7 +105,7 @@ class BitwardenBasic(unittest.TestCase):
         resp = self.organization.invite("test-account-2@example.com")
         self.assertTrue(resp.is_success)
         
-        if not os.environ.get("VAULTWARDEN_INVITATIONS_ALLOWED", True).lower() in ["true", "1", "yes"]:
+        if not os.environ.get("VAULTWARDEN_INVITATIONS_ALLOWED", "True").lower() in ["true", "1", "yes"]:
             user = self.organization.user_search(
             "test-account-2@example.com", force_refresh=True
             )

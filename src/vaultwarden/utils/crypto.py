@@ -280,6 +280,7 @@ def make_asym_key(key, stretch=True):
     private_key = asym_key.exportKey("DER", pkcs=8)
     return encrypt_sym(private_key, key), public_key, private_key
 
+
 def make_org_key():
     return token_bytes(64)
 

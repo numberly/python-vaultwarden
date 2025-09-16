@@ -124,7 +124,7 @@ class BitwardenBasic(unittest.TestCase):
         cipher.update_collection(old_colls)
 
     def test_add_organsiation(self):
-        res = self.bitwarden.create_organisation("test_me", "me@example.com")
+        res = bitwarden.create_organisation("test_me", "me@example.com")
         self.assertTrue(res.is_success)
 
 

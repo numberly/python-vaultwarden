@@ -1,3 +1,4 @@
+from base64 import b64decode
 from typing import Generic, Literal, TypeVar, cast
 from uuid import UUID
 
@@ -8,7 +9,7 @@ from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.enum import CipherType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
-from vaultwarden.utils.crypto import decrypt, encrypt
+from vaultwarden.utils.crypto import decrypt, encrypt, encrypt_asym
 
 # Pydantic models for Bitwarden data structures
 
@@ -419,6 +420,27 @@ class Organization(BitwardenBaseModel):
         }
         resp = self.api_client.api_request(
             "POST", f"api/organizations/{self.Id}/users/invite", json=payload
+        )
+        self._users = self._get_users()
+        return resp
+
+    def confirm(
+        self,
+        new_user: OrganizationUserDetails,
+    ):
+        rsa_public_key_new_user = b64decode(
+            self.api_client.get_public_key_for_user(new_user.UserId)
+        )
+        org_key_decrypted = self.key()
+        key = encrypt_asym(org_key_decrypted, rsa_public_key_new_user)
+
+        payload = {
+            "key": key,
+        }
+        resp = self.api_client.api_request(
+            "POST",
+            f"api/organizations/{self.Id}/users/{new_user.Id}/confirm",
+            json=payload,
         )
         self._users = self._get_users()
         return resp

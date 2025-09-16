@@ -131,11 +131,10 @@ class BitwardenAPIClient:
         return self._http_client.request(
             method, path, headers=headers, **kwargs
         )
-    
+
     def get_public_key_for_user(self, user_id: UUID | None = None) -> str:
-        resp = self.api_request(
-            "GET", f"api/users/{self._sync.Profile.Id if not user_id else user_id}/public-key"
-        )
+        used_id = user_id if user_id else self.sync().Profile.Id
+        resp = self.api_request("GET", f"api/users/{used_id}/public-key")
         return resp.json().get("publicKey")
 
     def sync(self, force_refresh: bool = False) -> SyncData:

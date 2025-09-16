@@ -1,6 +1,6 @@
+from base64 import b64decode
 from typing import Generic, Literal, TypeVar, cast
 from uuid import UUID
-from base64 import b64decode
 
 from pydantic import AliasChoices, Field, TypeAdapter, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
@@ -428,7 +428,9 @@ class Organization(BitwardenBaseModel):
         self,
         new_user: OrganizationUserDetails,
     ):
-        rsa_public_key_new_user = b64decode(self.api_client.get_public_key_for_user(new_user.UserId))
+        rsa_public_key_new_user = b64decode(
+            self.api_client.get_public_key_for_user(new_user.UserId)
+        )
         org_key_decrypted = self.key()
         key = encrypt_asym(org_key_decrypted, rsa_public_key_new_user)
 
@@ -436,7 +438,9 @@ class Organization(BitwardenBaseModel):
             "key": key,
         }
         resp = self.api_client.api_request(
-            "POST", f"api/organizations/{self.Id}/users/{new_user.Id}/confirm", json=payload
+            "POST",
+            f"api/organizations/{self.Id}/users/{new_user.Id}/confirm",
+            json=payload,
         )
         self._users = self._get_users()
         return resp

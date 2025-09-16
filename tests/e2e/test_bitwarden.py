@@ -97,20 +97,20 @@ class BitwardenBasic(unittest.TestCase):
         )
 
     def test_invite_user_than_remove(self):
-        user = self.organization.user_search(
-            "test-account-2@example.com", force_refresh=True
-        )
-        user.delete()
-
-        resp = self.organization.invite("test-account-2@example.com")
+        resp = self.organization.invite("test-account-3@example.com")
         self.assertTrue(resp.is_success)
         
         if not os.environ.get("VAULTWARDEN_INVITATIONS_ALLOWED", "True").lower() in ["true", "1", "yes"]:
             user = self.organization.user_search(
-            "test-account-2@example.com", force_refresh=True
+            "test-account-3@example.com", force_refresh=True
             )
             resp = self.organization.confirm(user)
             self.assertTrue(resp.is_success)
+            
+        user = self.organization.user_search(
+            "test-account-3@example.com", force_refresh=True
+        )
+        user.delete()
 
     def test_rename_organization(self):
         old_name = self.organization.Name

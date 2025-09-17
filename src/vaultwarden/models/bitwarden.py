@@ -1,6 +1,7 @@
 from typing import Generic, Literal, TypeVar, cast
 from uuid import UUID
 
+from httpx import Response
 from pydantic import AliasChoices, Field, TypeAdapter, field_validator
 from pydantic_core.core_schema import FieldValidationInfo
 
@@ -482,6 +483,22 @@ class Organization(BitwardenBaseModel):
         if len(users) == 0:
             return None
         return users[0]
+
+    def change_user_type(
+        self, user: OrganizationUserDetails, premissions: OrganizationUserType
+    ) -> Response:
+        payload = {
+            "collections": [],
+            "groups": [],
+            "permissions": {"response": None},
+            "type": premissions,
+            "accessSecretsManager": False,
+        }
+
+        resp = self.api_client.api_request(
+            "PUT", f"api/organizations/{self.Id}/users/{user.Id}", json=payload
+        )
+        return resp
 
     def _get_collections(self) -> list[OrganizationCollection]:
         resp = self.api_client.api_request(

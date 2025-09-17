@@ -143,8 +143,7 @@ class BitwardenAPIClient:
         used_id = user_id if user_id else self.sync().Profile.Id
         resp = self.api_request("GET", f"api/users/{used_id}/public-key")
         return resp.json().get("publicKey")
-    
-    
+
     def create_organisation(
         self,
         name: str,

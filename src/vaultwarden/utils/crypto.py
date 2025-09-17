@@ -281,6 +281,10 @@ def make_asym_key(key, stretch=True):
     return encrypt_sym(private_key, key), public_key, private_key
 
 
+def make_org_key():
+    return token_bytes(64)
+
+
 def gen_password(length=32, alphabet=None):
     alphabet = string.ascii_letters + string.digits
     while True:

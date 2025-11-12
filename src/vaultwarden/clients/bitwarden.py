@@ -34,6 +34,9 @@ class BitwardenAPIClient:
         self._http_client = Client(
             base_url=f"{self.url}/",
             event_hooks={"response": [log_raise_for_status]},
+            headers={
+                "Bitwarden-Client-Version": "2024.1.0"
+            },
             timeout=timeout,
         )
         self._connect_token: ConnectToken | None = None

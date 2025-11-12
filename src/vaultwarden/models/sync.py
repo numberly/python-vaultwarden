@@ -75,7 +75,7 @@ class UserProfile(PermissiveBaseModel):
     Id: UUID
     Key: str
     MasterPasswordHint: str | None = None
-    Name: str
+    Name: str | None
     Object: str | None
     Organizations: list[ProfileOrganization]
     Premium: bool
@@ -85,6 +85,7 @@ class UserProfile(PermissiveBaseModel):
     SecurityStamp: str
     TwoFactorEnabled: bool
     status: VaultwardenUserStatus = Field(
+        default=VaultwardenUserStatus.Enabled, # original Bitwarden doesn't support disabling users
         validation_alias=AliasChoices("_status", "_Status")
     )
 

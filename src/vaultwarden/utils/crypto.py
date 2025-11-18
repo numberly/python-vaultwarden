@@ -19,6 +19,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from hkdf import hkdf_expand
 
+
 class CIPHERS(IntEnum):
     sym = 2
     asym = 4
@@ -129,10 +130,25 @@ def make_master_key(
     match kdf.Kdf:
         case vaultwarden.models.bitwarden.KdfType.Pbkdf2:
             return pbkdf2_hmac("sha256", password, salt, kdf.KdfIterations)
-        case vaultwarden.models.bitwarden.KdfType.Argon2:
-            raise NotImplementedError("x")
+        case vaultwarden.models.bitwarden.KdfType.Argon2id:
+            # c.f.
+            # https://github.com/vaultwarden/vw_web_builds/blob/355bddc6c9d5c110e55fe74c5fcfa86ddd85572c/libs/common/src/platform/services/key-generation.service.ts#L55-L75
+            import argon2
+
+            hsalt = hashlib.new("sha256", salt).digest()
+            v = argon2.low_level.hash_secret_raw(
+                password,
+                hsalt,
+                time_cost=kdf.KdfIterations,
+                memory_cost=kdf.KdfMemory * 1024,
+                parallelism=kdf.KdfParallelism,
+                hash_len=32,
+                type=argon2.Type.ID,
+            )
+            return v
         case _:
             return None
+
 
 def hash_password(password, salt, iterations=ITERATIONS):
     """base64-encode a wrapped, stretched password+salt(email) for signup/login"""

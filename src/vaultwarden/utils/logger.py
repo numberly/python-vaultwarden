@@ -11,4 +11,6 @@ def log_raise_for_status(response) -> None:
         )
     if response.status_code >= 400:
         logger.error(f"Error: {response.status_code}")
+        # raise_for_status() closes stream, must read the response before that:
+        response.read()
     response.raise_for_status()

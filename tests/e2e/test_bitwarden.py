@@ -3,6 +3,7 @@ import unittest
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
+from vaultwarden.models.enum import OrganizationUserType
 
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)
@@ -40,7 +41,7 @@ class BitwardenBasic(unittest.TestCase):
         ).users()
 
     def test_get_organization_users(self):
-        self.assertEqual(len(self.test_users), 2)
+        self.assertEqual(len(self.test_users), 3)
 
     def test_get_organization_items(self):
         self.assertEqual(len(self.test_org_ciphers), 1)
@@ -61,6 +62,13 @@ class BitwardenBasic(unittest.TestCase):
 
     def test_get_users_of_collection_2(self):
         self.assertEqual(len(self.test_collection_2_users), 1)
+
+    def test_change_user_type_organization(self):
+        user = self.organization.user_search("test-account-3@example.com")
+        resp = self.organization.change_user_type(user, OrganizationUserType.Admin)
+        self.assertTrue(resp.is_success)
+        resp = self.organization.change_user_type(user, OrganizationUserType.User)
+        self.assertTrue(resp.is_success)
 
     def test_create_delete_collection(self):
         len_old_colls = len(self.organization.collections(force_refresh=True))

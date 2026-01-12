@@ -134,11 +134,36 @@ You can now install the project and its dependencies using:
 ```bash
 pip install -e .[test]
 ```
+
+### Code Style and Linting
+
+This project uses [ruff](https://docs.astral.sh/ruff/) for both linting and code formatting. Before submitting a pull request, ensure your code follows the project's style guidelines.
+
+To check for linting and formatting issues:
+```bash
+hatch run style:check
+```
+
+To automatically fix linting issues and format your code:
+```bash
+hatch run style:format
+```
+
+To only run linting (with auto-fix):
+```bash
+hatch run style:lint
+```
+
 ### Testing
 To run the tests, use:
 
 ```bash
 bash tests/e2e/run_tests.sh
+```
+
+Or using hatch:
+```bash
+hatch run test:test
 ```
 
 ## License

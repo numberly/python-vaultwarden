@@ -84,9 +84,10 @@ class UserProfile(PermissiveBaseModel):
     Providers: list
     SecurityStamp: str
     TwoFactorEnabled: bool
+    # original Bitwarden doesn't support disabling users
     status: VaultwardenUserStatus = Field(
-        default=VaultwardenUserStatus.Enabled, # original Bitwarden doesn't support disabling users
-        validation_alias=AliasChoices("_status", "_Status")
+        default=VaultwardenUserStatus.Enabled,
+        validation_alias=AliasChoices("_status", "_Status"),
     )
 
 

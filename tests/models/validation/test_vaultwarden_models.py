@@ -1,7 +1,6 @@
 import unittest
 
 from pydantic import TypeAdapter
-
 from vaultwarden.models.sync import VaultwardenUser
 
 

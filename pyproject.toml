@@ -93,51 +93,47 @@ check = "mypy src/vaultwarden"
 [tool.hatch.envs.style]
 detached = true
 dependencies = [
-    "black",
-    "isort",
     "ruff",
 ]
 [tool.hatch.envs.style.scripts]
 lint = [
-    "ruff check --fix src/vaultwarden",
+    "ruff check --fix src/vaultwarden tests",
 ]
 check = [
-    "isort --check-only --diff src/vaultwarden",
-    "black -q --check --diff src/vaultwarden",
-    "ruff check src/vaultwarden",
+    "ruff check src/vaultwarden tests",
+    "ruff format --check src/vaultwarden tests",
 ]
 format = [
-    "isort -q src/vaultwarden",
-    "black -q src/vaultwarden",
-    "lint"
+    "ruff format src/vaultwarden tests",
+    "lint",
 ]
 
 [tool.ruff]
-# Add "Q" to the list of enabled codes.
-select = ["B", "E", "F", "I", "N", "Q", "RUF", "SIM", "TCH"]
-ignore = ["N815"]
-fixable = ["ALL"]
 src = ["src/vaultwarden", "tests"]
 exclude = ["src/vaultwarden/utils/crypto.py"]
 target-version = "py310"
 line-length = 79
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint]
+# Add "Q" to the list of enabled codes.
+select = ["B", "E", "F", "I", "N", "Q", "RUF", "SIM", "TCH"]
+ignore = ["N815"]
+fixable = ["ALL"]
+
+[tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
 
-[tool.ruff.flake8-bugbear]
+[tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["typer.Argument"]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 force-sort-within-sections = true
 
-[tool.black]
-line-length = 79
-target-version = ["py310", "py311"]
-
-[tool.isort]
-profile = "black"
-line_length = 80
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
 
 [tool.mypy]
 ignore_missing_imports = true

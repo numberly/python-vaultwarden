@@ -1,12 +1,11 @@
 import unittest
 
 from pydantic import TypeAdapter
-
 from vaultwarden.models.bitwarden import (
-    Organization,
-    ResplistBitwarden,
-    OrganizationUserDetails,
     CollectionUser,
+    Organization,
+    OrganizationUserDetails,
+    ResplistBitwarden,
 )
 
 

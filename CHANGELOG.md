@@ -1,3 +1,19 @@
+## 1.1.0 (2026-01-12)
+
+### Feat
+
+- support organizations renaming
+- Update issue templates
+
+### Fix
+
+- **logger**: make the response content of a failed api call available to an exception handler
+- **crypto**: fix raise DecryptError
+
+### Refactor
+
+- migrate to ruff-only linting
+
 ## 1.0.4 (2025-06-16)
 
 ### Fix

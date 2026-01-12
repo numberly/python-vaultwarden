@@ -1,12 +1,11 @@
 import unittest
 
 from pydantic import TypeAdapter
-
 from src.vaultwarden.models.sync import SyncData, VaultwardenUser
 from vaultwarden.models.bitwarden import (
     Organization,
-    ResplistBitwarden,
     OrganizationCollection,
+    ResplistBitwarden,
 )
 
 

@@ -2,20 +2,16 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
 
 jobs:
   test:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ '3.10', '3.11', '3.12', '3.13' ]
-        os: [ ubuntu-latest ]
-        vaultwarden-version: [ '1.32.7', '1.33.2' , '1.34.3']
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        os: [ubuntu-latest]
+        vaultwarden-version: ["1.32.7", "1.33.2", "1.34.3"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
@@ -54,7 +50,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13'
+          python-version: "3.13"
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade hatch
@@ -75,10 +71,11 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: "3.10"
       - name: Install Hatch
         run: |
           python -m pip install -U hatch
       - name: Build package
         run: |
           hatch build
+

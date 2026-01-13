@@ -73,7 +73,7 @@ class BitwardenAPIClient:
         self._connect_token.master_key = make_master_key(
             password=self.password,
             salt=self.email,
-            kdf=vaultwarden.models.bitwarden.Kdf.from_ConnectToken(
+            kdf=vaultwarden.models.bitwarden.Kdf.from_connect_token(
                 self._connect_token
             ),
         )
@@ -101,7 +101,7 @@ class BitwardenAPIClient:
         self._connect_token.master_key = make_master_key(
             password=self.password,
             salt=self.email,
-            kdf=vaultwarden.models.bitwarden.Kdf.from_ConnectToken(
+            kdf=vaultwarden.models.bitwarden.Kdf.from_connect_token(
                 self._connect_token
             ),
         )

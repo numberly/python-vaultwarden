@@ -115,9 +115,7 @@ def is_encrypted(cipher_string):
         return True
 
 
-def make_master_key(
-    password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"
-):
+def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
     import vaultwarden.models.bitwarden
 
     assert isinstance(salt, str)
@@ -186,9 +184,7 @@ def aes_encrypt(plaintext, key, charset="utf-8"):
 
 def encrypt_sym(plaintext, key, to_bytes=False, *a, **kw):
     # inspired from bitwarden/jslib:src/services/crypto.service.ts
-    typ, (iv, ct, mac) = int(CIPHERS.sym), aes_encrypt(
-        plaintext, key, *a, **kw
-    )
+    typ, (iv, ct, mac) = int(CIPHERS.sym), aes_encrypt(plaintext, key, *a, **kw)
     if mac:
         mac = mac.digest()
     if to_bytes:
@@ -269,9 +265,7 @@ def decrypt_bytes(cipher_bytes, key, *a, **kw):
         ct = cipher_bytes[49:]
         ret = decrypt_sym(ct, key, iv, mac)
     else:
-        raise UnimplementedError(
-            f"{typ} encType decryption is not implemented"
-        )
+        raise UnimplementedError(f"{typ} encType decryption is not implemented")
     return ret
 
 

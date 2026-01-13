@@ -27,10 +27,9 @@ from pydantic_core.core_schema import (
     ValidationInfo,
     ValidatorFunctionWrapHandler,
 )
-from src.vaultwarden.models.enum import KdfType
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
-from vaultwarden.models.enum import CipherType, OrganizationUserType
+from vaultwarden.models.enum import CipherType, OrganizationUserType, KdfType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
 from vaultwarden.utils.crypto import decrypt, encrypt

@@ -2,9 +2,8 @@ import time
 from uuid import UUID
 
 from pydantic import AliasChoices, Field, field_validator
-from src.vaultwarden.models.enum import KdfType
 
-from vaultwarden.models.enum import VaultwardenUserStatus
+from vaultwarden.models.enum import KdfType, VaultwardenUserStatus
 from vaultwarden.models.permissive_model import PermissiveBaseModel
 from vaultwarden.utils.crypto import decrypt
 

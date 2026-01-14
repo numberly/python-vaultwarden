@@ -8,8 +8,8 @@ assignees: Lujeni
 ---
 
 ## 🔍 Before submitting
-- [ ] I have searched for [existing issues](../issues) and pull requests to ensure this is not already reported or fixed.  
-- [ ] I am running the latest version of the server and client where possible.  
+- [ ] I have searched for [existing issues](../issues) and pull requests to ensure this is not already reported or fixed.
+- [ ] I am running the latest version of the server and client where possible.
 
 ---
 
@@ -20,9 +20,9 @@ assignees: Lujeni
 
 ## 🛠️ Steps to Reproduce
 <!-- Please provide a minimal reproducible example (CLI commands, API calls, or code snippet). -->
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ---
 
@@ -37,8 +37,8 @@ assignees: Lujeni
 ---
 
 ## 📦 Versions
-- **Vaultwarden server version**:  
-- **Client version**:  
+- **Vaultwarden server version**:
+- **Client version**:
 
 ---
 

@@ -27,3 +27,8 @@ class VaultwardenUserStatus(IntEnum):
     Enabled = 0
     Invited = 1
     Disabled = 2
+
+
+class KdfType(IntEnum):
+    Pbkdf2 = 0
+    Argon2id = 1

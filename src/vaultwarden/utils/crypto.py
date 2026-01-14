@@ -69,6 +69,7 @@ def decode_cipher_string(cipher_string):
     """decode a cipher tring into it's parts"""
     iv = None
     mac = None
+    assert cipher_string is not None
     if not ENCRYPTED_STRING_RE.match(cipher_string):
         raise WrongFormatError(f"{cipher_string}")
     try:
@@ -114,13 +115,37 @@ def is_encrypted(cipher_string):
         return True
 
 
-def make_master_key(password, salt, iterations=ITERATIONS):
+def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
+    import vaultwarden.models.bitwarden
+
+    assert isinstance(salt, str)
+    assert isinstance(password, str)
+
     salt = salt.lower()
-    if not hasattr(password, "decode"):
-        password = password.encode("utf-8")
-    if not hasattr(salt, "decode"):
-        salt = salt.encode("utf-8")
-    return pbkdf2_hmac("sha256", password, salt, iterations)
+    password = password.encode("utf-8")
+    salt = salt.encode("utf-8")
+
+    match kdf.Kdf:
+        case vaultwarden.models.bitwarden.KdfType.Pbkdf2:
+            return pbkdf2_hmac("sha256", password, salt, kdf.KdfIterations)
+        case vaultwarden.models.bitwarden.KdfType.Argon2id:
+            # c.f.
+            # https://github.com/vaultwarden/vw_web_builds/blob/355bddc6c9d5c110e55fe74c5fcfa86ddd85572c/libs/common/src/platform/services/key-generation.service.ts#L55-L75
+            import argon2
+
+            hsalt = hashlib.new("sha256", salt).digest()
+            v = argon2.low_level.hash_secret_raw(
+                password,
+                hsalt,
+                time_cost=kdf.KdfIterations,
+                memory_cost=kdf.KdfMemory * 1024,
+                parallelism=kdf.KdfParallelism,
+                hash_len=32,
+                type=argon2.Type.ID,
+            )
+            return v
+        case _:
+            return None
 
 
 def hash_password(password, salt, iterations=ITERATIONS):
@@ -159,9 +184,7 @@ def aes_encrypt(plaintext, key, charset="utf-8"):
 
 def encrypt_sym(plaintext, key, to_bytes=False, *a, **kw):
     # inspired from bitwarden/jslib:src/services/crypto.service.ts
-    typ, (iv, ct, mac) = int(CIPHERS.sym), aes_encrypt(
-        plaintext, key, *a, **kw
-    )
+    typ, (iv, ct, mac) = int(CIPHERS.sym), aes_encrypt(plaintext, key, *a, **kw)
     if mac:
         mac = mac.digest()
     if to_bytes:
@@ -242,9 +265,7 @@ def decrypt_bytes(cipher_bytes, key, *a, **kw):
         ct = cipher_bytes[49:]
         ret = decrypt_sym(ct, key, iv, mac)
     else:
-        raise UnimplementedError(
-            f"{typ} encType decryption is not implemented"
-        )
+        raise UnimplementedError(f"{typ} encType decryption is not implemented")
     return ret
 
 

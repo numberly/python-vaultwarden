@@ -223,14 +223,14 @@ class _CipherBase(BitwardenBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        if data.get("key") is not None:
+        if (key := data.get("key")) is not None:
             info.context["cctx"].append(
-                decrypt(data["key"], info.context["cctx"][0])
+                decrypt(key, info.context["cctx"][0])
             )
 
         v = handler(data)
 
-        if data.get("key") is not None:
+        if key is not None:
             info.context["cctx"].pop()
 
         return v
@@ -796,7 +796,7 @@ class Organization(BitwardenBaseModel):
             context={
                 "parent_id": self.Id,
                 "client": self.api_client,
-                "cctx": [org_key],
+                "cctx": [org_key], # crypto context
             },
         )
         return res.Data

@@ -66,13 +66,15 @@ class BitwardenBaseModel(PermissiveBaseModel):
 
 def decode_bytes(
     value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
-) -> str:
-    for key in info.context["cctx"][::-1]:
+) -> bytes:
+    context: dict = cast(dict, info.context)
+    keys: list[bytes] = cast(list[bytes], context.get("cctx"))
+    for key in keys[::-1]:
         try:
             return decrypt(handler(value), key)
         except Exception:
             continue
-
+    raise ValueError(f"No key found")
 
 def decode_string(
     value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
@@ -224,14 +226,17 @@ class _CipherBase(BitwardenBaseModel):
         info: ValidationInfo,
     ) -> Self:
         if (key := data.get("key")) is not None:
-            info.context["cctx"].append(
-                decrypt(key, info.context["cctx"][0])
+            context = cast(dict, info.context)
+            cctx = cast(list[bytes], context.get("cctx"))
+
+            cctx.append(
+                decrypt(key, cctx[0])
             )
 
         v = handler(data)
 
         if key is not None:
-            info.context["cctx"].pop()
+            cctx.pop()
 
         return v
 
@@ -280,7 +285,7 @@ class _CipherBase(BitwardenBaseModel):
 
 
 class Login(_CipherBase):
-    Type: Literal[1]
+    Type: Literal[CipherType.Login]
 
     login: LoginData | None = None
     secureNote: None = None
@@ -291,7 +296,7 @@ class Login(_CipherBase):
 
 
 class SecureNote(_CipherBase):
-    Type: Literal[2]
+    Type: Literal[CipherType.SecureNote]
 
     login: None = None
     secureNote: SecureNoteProperty | None = None
@@ -302,7 +307,7 @@ class SecureNote(_CipherBase):
 
 
 class Card(_CipherBase):
-    Type: Literal[3]
+    Type: Literal[CipherType.Card]
 
     login: None = None
     card: None = None
@@ -313,7 +318,7 @@ class Card(_CipherBase):
 
 
 class Identity(_CipherBase):
-    Type: Literal[4]
+    Type: Literal[CipherType.Identity]
 
     login: None = None
     secureNote: None = None

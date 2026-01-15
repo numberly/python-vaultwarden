@@ -14,11 +14,14 @@ from enum import IntEnum
 from hashlib import pbkdf2_hmac, sha256
 from hmac import new as hmac_new
 from secrets import token_bytes
+import typing
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from hkdf import hkdf_expand
 
+if typing.TYPE_CHECKING:
+    import vaultwarden.models.bitwarden
 
 class CIPHERS(IntEnum):
     sym = 2
@@ -115,24 +118,26 @@ def is_encrypted(cipher_string):
         return True
 
 
-def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
+def make_master_key(password_: str, salt_: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
     import vaultwarden.models.bitwarden
 
-    assert isinstance(salt, str)
-    assert isinstance(password, str)
+    assert isinstance(salt_, str)
+    assert isinstance(password_, str)
 
-    salt = salt.lower()
-    password = password.encode("utf-8")
-    salt = salt.encode("utf-8")
+    password = password_.encode("utf-8")
+    salt = salt_.lower().encode("utf-8")
 
     match kdf.Kdf:
         case vaultwarden.models.bitwarden.KdfType.Pbkdf2:
+            assert kdf.KdfIterations is not None
             return pbkdf2_hmac("sha256", password, salt, kdf.KdfIterations)
         case vaultwarden.models.bitwarden.KdfType.Argon2id:
             # c.f.
             # https://github.com/vaultwarden/vw_web_builds/blob/355bddc6c9d5c110e55fe74c5fcfa86ddd85572c/libs/common/src/platform/services/key-generation.service.ts#L55-L75
             import argon2
-
+            assert kdf.KdfIterations is not None
+            assert kdf.KdfMemory is not None
+            assert kdf.KdfParallelism is not None
             hsalt = hashlib.new("sha256", salt).digest()
             v = argon2.low_level.hash_secret_raw(
                 password,
@@ -144,9 +149,6 @@ def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden
                 type=argon2.Type.ID,
             )
             return v
-        case _:
-            return None
-
 
 def hash_password(password, salt, iterations=ITERATIONS):
     """base64-encode a wrapped, stretched password+salt(email) for signup/login"""

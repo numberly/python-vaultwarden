@@ -1,3 +1,4 @@
+from base64 import b64decode, b64encode
 from typing import Literal
 from uuid import UUID
 
@@ -5,7 +6,13 @@ from httpx import Client, Response
 
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
-from vaultwarden.utils.crypto import make_master_key
+from vaultwarden.utils.crypto import (
+    encrypt_asym,
+    encrypt_sym,
+    make_asym_key,
+    make_master_key,
+    make_org_key,
+)
 from vaultwarden.utils.logger import log_raise_for_status
 
 
@@ -132,6 +139,46 @@ class BitwardenAPIClient:
         return self._http_client.request(
             method, path, headers=headers, **kwargs
         )
+
+    def get_public_key_for_user(self, user_id: UUID | None = None) -> str:
+        used_id = user_id if user_id else self.sync().Profile.Id
+        resp = self.api_request("GET", f"api/users/{used_id}/public-key")
+        return resp.json().get("publicKey")
+
+    def create_organisation(
+        self,
+        name: str,
+        email: str,
+        default_collection_name: str = "DefaultCollection",
+    ) -> Response:
+        if not self.connect_token:
+            raise BitwardenError("Not connected")
+
+        public_key_user = b64decode(self.get_public_key_for_user())
+        org_key = make_org_key()
+        protected_organisation_symetric_key = encrypt_asym(
+            org_key, public_key_user
+        )
+
+        collection = encrypt_sym(
+            bytes(default_collection_name, "utf-8"), org_key
+        )
+        encrypted_priv, pub, _ = make_asym_key(self.connect_token.user_key)
+
+        payload = {
+            "key": protected_organisation_symetric_key,
+            "collectionName": collection,
+            "name": name,
+            "billingEmail": email,
+            "initiationPath": "New organization creation in-product",
+            "keys": {
+                "publicKey": b64encode(pub).decode("utf-8"),
+                "encryptedPrivateKey": encrypted_priv,
+            },
+            "planType": 0,
+        }
+        resp = self._api_request("POST", "api/organizations", json=payload)
+        return resp
 
     def sync(self, force_refresh: bool = False) -> SyncData:
         if self._sync is None or force_refresh:

@@ -14,11 +14,14 @@ from enum import IntEnum
 from hashlib import pbkdf2_hmac, sha256
 from hmac import new as hmac_new
 from secrets import token_bytes
+import typing
 
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from hkdf import hkdf_expand
 
+if typing.TYPE_CHECKING:
+    import vaultwarden.models.bitwarden
 
 class CIPHERS(IntEnum):
     sym = 2
@@ -69,6 +72,7 @@ def decode_cipher_string(cipher_string):
     """decode a cipher tring into it's parts"""
     iv = None
     mac = None
+    assert cipher_string is not None
     if not ENCRYPTED_STRING_RE.match(cipher_string):
         raise WrongFormatError(f"{cipher_string}")
     try:
@@ -114,14 +118,37 @@ def is_encrypted(cipher_string):
         return True
 
 
-def make_master_key(password, salt, iterations=ITERATIONS):
-    salt = salt.lower()
-    if not hasattr(password, "decode"):
-        password = password.encode("utf-8")
-    if not hasattr(salt, "decode"):
-        salt = salt.encode("utf-8")
-    return pbkdf2_hmac("sha256", password, salt, iterations)
+def make_master_key(password_: str, salt_: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
+    import vaultwarden.models.bitwarden
 
+    assert isinstance(salt_, str)
+    assert isinstance(password_, str)
+
+    password = password_.encode("utf-8")
+    salt = salt_.lower().encode("utf-8")
+
+    match kdf.Kdf:
+        case vaultwarden.models.bitwarden.KdfType.Pbkdf2:
+            assert kdf.KdfIterations is not None
+            return pbkdf2_hmac("sha256", password, salt, kdf.KdfIterations)
+        case vaultwarden.models.bitwarden.KdfType.Argon2id:
+            # c.f.
+            # https://github.com/vaultwarden/vw_web_builds/blob/355bddc6c9d5c110e55fe74c5fcfa86ddd85572c/libs/common/src/platform/services/key-generation.service.ts#L55-L75
+            import argon2
+            assert kdf.KdfIterations is not None
+            assert kdf.KdfMemory is not None
+            assert kdf.KdfParallelism is not None
+            hsalt = hashlib.new("sha256", salt).digest()
+            v = argon2.low_level.hash_secret_raw(
+                password,
+                hsalt,
+                time_cost=kdf.KdfIterations,
+                memory_cost=kdf.KdfMemory * 1024,
+                parallelism=kdf.KdfParallelism,
+                hash_len=32,
+                type=argon2.Type.ID,
+            )
+            return v
 
 def hash_password(password, salt, iterations=ITERATIONS):
     """base64-encode a wrapped, stretched password+salt(email) for signup/login"""
@@ -159,9 +186,7 @@ def aes_encrypt(plaintext, key, charset="utf-8"):
 
 def encrypt_sym(plaintext, key, to_bytes=False, *a, **kw):
     # inspired from bitwarden/jslib:src/services/crypto.service.ts
-    typ, (iv, ct, mac) = int(CIPHERS.sym), aes_encrypt(
-        plaintext, key, *a, **kw
-    )
+    typ, (iv, ct, mac) = int(CIPHERS.sym), aes_encrypt(plaintext, key, *a, **kw)
     if mac:
         mac = mac.digest()
     if to_bytes:
@@ -242,9 +267,7 @@ def decrypt_bytes(cipher_bytes, key, *a, **kw):
         ct = cipher_bytes[49:]
         ret = decrypt_sym(ct, key, iv, mac)
     else:
-        raise UnimplementedError(
-            f"{typ} encType decryption is not implemented"
-        )
+        raise UnimplementedError(f"{typ} encType decryption is not implemented")
     return ret
 
 

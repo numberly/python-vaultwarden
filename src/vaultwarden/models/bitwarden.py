@@ -29,7 +29,7 @@ from pydantic_core.core_schema import (
 )
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
-from vaultwarden.models.enum import CipherType, OrganizationUserType, KdfType
+from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
 from vaultwarden.utils.crypto import decrypt, encrypt
@@ -74,7 +74,8 @@ def decode_bytes(
             return decrypt(handler(value), key)
         except Exception:
             continue
-    raise ValueError(f"No key found")
+    raise ValueError("No key found")
+
 
 def decode_string(
     value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
@@ -229,9 +230,7 @@ class _CipherBase(BitwardenBaseModel):
             context = cast(dict, info.context)
             cctx = cast(list[bytes], context.get("cctx"))
 
-            cctx.append(
-                decrypt(key, cctx[0])
-            )
+            cctx.append(decrypt(key, cctx[0]))
 
         v = handler(data)
 
@@ -801,7 +800,7 @@ class Organization(BitwardenBaseModel):
             context={
                 "parent_id": self.Id,
                 "client": self.api_client,
-                "cctx": [org_key], # crypto context
+                "cctx": [org_key],  # crypto context
             },
         )
         return res.Data

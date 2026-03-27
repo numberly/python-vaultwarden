@@ -145,7 +145,11 @@ class VaultwardenAdminClient:
     def delete(self, identifier: str | UUID) -> bool:
         logger.info(f"Deleting {identifier} account")
         try:
-            self._admin_request("POST", f"users/{identifier}/delete")
+            self._admin_request(
+                "POST",
+                f"users/{identifier}/delete",
+                headers={"Content-Type": "application/json"},
+            )
         except HTTPStatusError as e:
             logger.warning(f"Failed to delete {identifier} {e}")
             return False

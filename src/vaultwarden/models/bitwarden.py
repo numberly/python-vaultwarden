@@ -1,12 +1,12 @@
 import dataclasses
 import datetime
+import sys
 from typing import (
     TYPE_CHECKING,
     Annotated,
     Any,
     Generic,
     Literal,
-    Self,
     TypeVar,
     Union,
     cast,
@@ -36,6 +36,12 @@ from vaultwarden.utils.crypto import decrypt, encrypt
 
 if TYPE_CHECKING:
     import vaultwarden.clients.bitwarden
+
+if sys.version_info < (3, 12):
+    from typing_extensions import Self
+else:
+    from typing import Self
+
 
 # Pydantic models for Bitwarden data structures
 

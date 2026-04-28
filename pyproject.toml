@@ -39,6 +39,7 @@ dependencies = [
     "pycryptodome >=3.17.0",
     "pydantic >=2.5.0",
     "httpx >=0.24.1",
+    'typing_extensions; python_version<"3.12"',
 ]
 [dev-dependencies]
 test = [

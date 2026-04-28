@@ -67,8 +67,8 @@ class BitwardenBaseModel(PermissiveBaseModel):
 def decode_bytes(
     value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
 ) -> bytes:
-    context: dict = cast(dict, info.context)
-    keys: list[bytes] = cast(list[bytes], context.get("cctx"))
+    context: dict = cast("dict", info.context)
+    keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     for key in keys[::-1]:
         try:
             return decrypt(handler(value), key)
@@ -227,8 +227,8 @@ class _CipherBase(BitwardenBaseModel):
         info: ValidationInfo,
     ) -> Self:
         if (key := data.get("key")) is not None:
-            context = cast(dict, info.context)
-            cctx = cast(list[bytes], context.get("cctx"))
+            context = cast("dict", info.context)
+            cctx = cast("list[bytes]", context.get("cctx"))
 
             cctx.append(decrypt(key, cctx[0]))
 

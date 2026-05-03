@@ -61,7 +61,7 @@ client.set_user_enabled(user.Id, enabled=True)
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import Organization, OrganizationCollection, get_organization
 
-bitwarden_client = BitwardenAPIClient(url="https://vaultwarden.example.com", email="admin@example", password="admin_password", client_id="client_id", client_secret="client_secret")
+bitwarden_client = BitwardenAPIClient(url="https://vaultwarden.example.com", email="admin@example", password="admin_password", client_id="client_id", client_secret="client_secret", device_id="my_test_device")
 
 org_uuid = "550e8400-e29b-41d4-a716-446655440000"
 
@@ -155,10 +155,15 @@ hatch run style:lint
 ```
 
 ### Testing
-To run the tests, use:
-
+Configure the test by loading the environment variables
 ```bash
-bash tests/e2e/run_tests.sh
+set -a; . tests/e2e/.env; set +a
+```
+_this is proconfigrued for vscode python test extention_
+
+To run the tests, use:
+```bash
+python -m unittests discover
 ```
 
 Or using hatch:

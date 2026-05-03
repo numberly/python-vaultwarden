@@ -1,0 +1,12 @@
+{
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./tests",
+        "-p",
+        "test_*.py"
+    ],
+    "python.envFile": "${workspaceFolder}/tests/e2e/.env",
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
+}

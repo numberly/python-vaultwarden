@@ -50,19 +50,9 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.13"
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade hatch
-      - name: Check with black + isort
-        if: always()
-        run: hatch run style:format && git diff --exit-code
-      - name: Check with ruff
-        if: always()
-        run: hatch run style:lint
-      - name: Check with mypy
-        if: always()
-        run: hatch run types:check
+          python-version: "3.12"
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
 
   package:
     runs-on: ubuntu-latest

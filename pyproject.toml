@@ -82,34 +82,6 @@ matrix.type.scripts = [
     { key = "with-coverage", value = "_coverage", if = ["default"] },
 ]
 
-[tool.hatch.envs.types]
-dependencies = [
-    "mypy",
-    "types-PyYAML",
-    "types-setuptools",
-    "typing-extensions",
-]
-[tool.hatch.envs.types.scripts]
-check = "mypy src/vaultwarden"
-
-[tool.hatch.envs.style]
-detached = true
-dependencies = [
-    "ruff",
-]
-[tool.hatch.envs.style.scripts]
-lint = [
-    "ruff check --fix src/vaultwarden tests",
-]
-check = [
-    "ruff check src/vaultwarden tests",
-    "ruff format --check src/vaultwarden tests",
-]
-format = [
-    "ruff format src/vaultwarden tests",
-    "lint",
-]
-
 [tool.ruff]
 src = ["src/vaultwarden", "tests"]
 exclude = ["src/vaultwarden/utils/crypto.py"]

@@ -135,23 +135,17 @@ You can now install the project and its dependencies using:
 pip install -e .[test]
 ```
 
-### Code Style and Linting
+### Pre-commit hooks
 
-This project uses [ruff](https://docs.astral.sh/ruff/) for both linting and code formatting. Before submitting a pull request, ensure your code follows the project's style guidelines.
-
-To check for linting and formatting issues:
+Install [pre-commit](https://pre-commit.com/) hooks to run the same checks as CI before each commit:
 ```bash
-hatch run style:check
+pip install pre-commit
+pre-commit install
 ```
 
-To automatically fix linting issues and format your code:
+Run all hooks manually:
 ```bash
-hatch run style:format
-```
-
-To only run linting (with auto-fix):
-```bash
-hatch run style:lint
+pre-commit run --all-files
 ```
 
 ### Testing

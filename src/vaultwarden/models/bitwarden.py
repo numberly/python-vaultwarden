@@ -27,6 +27,7 @@ from pydantic_core.core_schema import (
     ValidationInfo,
     ValidatorFunctionWrapHandler,
 )
+from typing_extensions import Self
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
@@ -455,7 +456,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
     Collections: list[UserCollection]
     Groups: list | None = None
     TwoFactorEnabled: bool
-    Permissions: dict | None = Field(default_factory=dict)
+    Permissions: dict[str, Any] | None = None
 
     @field_validator("OrganizationId")
     @classmethod

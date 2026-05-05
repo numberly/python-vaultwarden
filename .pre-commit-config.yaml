@@ -19,16 +19,9 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
+        exclude: ^tests/
         additional_dependencies:
           [types-PyYAML, types-setuptools, typing-extensions, pydantic>=2.5.0]
-        args:
-          [
-            --ignore-missing-imports,
-            --warn-unreachable,
-            --no-implicit-optional,
-            --show-error-codes,
-            --plugins=pydantic.mypy,
-          ]
 
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v3.5.3

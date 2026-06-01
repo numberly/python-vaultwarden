@@ -1,8 +1,19 @@
 import os
 import unittest
+from pathlib import Path
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
+
+
+env = Path("tests/.env").read_text()
+for line in env.splitlines():
+    k,v = line.strip().split(":", maxsplit=1)
+    v = v.strip().strip('"')
+    if os.environ.get(k) is None:
+        print(f"{k} = {v}")
+        os.environ[k] = v
+
 
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)

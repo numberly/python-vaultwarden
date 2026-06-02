@@ -21,9 +21,7 @@ class BitwardenAPIClient:
         timeout: int = 30,
     ):
         # if one of the parameters is None, raise an exception
-        if not all(
-            [url, email, password, client_id, client_secret, device_id]
-        ):
+        if not all([url, password, client_id, client_secret, device_id]):
             raise BitwardenError("All parameters are required")
         self.email = email
         self.password = password
@@ -96,6 +94,18 @@ class BitwardenAPIClient:
             "identity/connect/token", headers=headers, data=payload
         )
         self._connect_token = ConnectToken.model_validate_json(resp.text)
+
+        if self.email is None:
+            headers = {
+                "Authorization": f"Bearer {self._connect_token.access_token}",
+                "content-type": "application/json; charset=utf-8",
+                "Accept": "*/*",
+            }
+            resp = self._http_client.get(
+                "api/accounts/profile", headers=headers
+            )
+            self.email = resp.json()["email"]
+
         import vaultwarden.models.bitwarden
 
         self._connect_token.master_key = make_master_key(

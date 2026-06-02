@@ -11,17 +11,32 @@ password = os.environ.get("BITWARDEN_PASSWORD", None)
 client_id = os.environ.get("BITWARDEN_CLIENT_ID", None)
 client_secret = os.environ.get("BITWARDEN_CLIENT_SECRET", None)
 device_id = os.environ.get("BITWARDEN_DEVICE_ID", None)
-bitwarden = BitwardenAPIClient(
-    url, email, password, client_id, client_secret, device_id
-)
 
 # Get test organization id from environment variables
 test_organization = os.environ.get("BITWARDEN_TEST_ORGANIZATION", None)
 
+client_with_mail = BitwardenAPIClient(
+    url,
+    email,
+    password,
+    client_id,
+    client_secret,
+    device_id,
+)
 
-class BitwardenBasic(unittest.TestCase):
-    def setUp(self) -> None:
-        self.organization = get_organization(bitwarden, test_organization)
+client_without_mail = BitwardenAPIClient(
+    url,
+    None,
+    password,
+    client_id,
+    client_secret,
+    device_id,
+)
+
+
+class BitwardenBaseTests:
+    def setup_base(self):
+        self.organization = get_organization(self.bitwarden, test_organization)
         self.test_colls_names = self.organization.collections(as_dict=True)
         self.test_colls_ids = self.organization.collections()
         self.test_users = self.organization.users()
@@ -126,6 +141,18 @@ class BitwardenBasic(unittest.TestCase):
     def test_deduplicate(self):
         # Todo build test fixtures and delete them at the end of the test
         return
+
+
+class BitwardenWithEmailTests(unittest.TestCase, BitwardenBaseTests):
+    def setUp(self):
+        self.bitwarden = client_with_mail
+        self.setup_base()
+
+
+class BitwardenWithoutEmailTests(unittest.TestCase, BitwardenBaseTests):
+    def setUp(self):
+        self.bitwarden = client_without_mail
+        self.setup_base()
 
 
 if __name__ == "__main__":

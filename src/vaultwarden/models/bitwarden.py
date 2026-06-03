@@ -429,10 +429,19 @@ class OrganizationCollection(BitwardenBaseModel):
                     }
                     for user_id in users
                 ]
+
+        org_object = get_organization(self.bitwarden_client, self.OrganizationId)
+        data_payload = {
+            "name": encrypt(2, self.Name, org_object.key()),
+            "users": users_payload,
+            "groups": [],
+            "id": str(self.Id)
+        }
+
         return self.api_client.api_request(
             "PUT",
-            f"api/organizations/{self.OrganizationId}/collections/{self.Id}/users",
-            json=users_payload,
+            f"api/organizations/{self.OrganizationId}/collections/{self.Id}",
+            json=data_payload,
         )
 
     # Delete collection

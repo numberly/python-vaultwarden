@@ -1,3 +1,4 @@
+import typing
 from typing import Literal
 from uuid import UUID
 
@@ -7,6 +8,14 @@ from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
 from vaultwarden.utils.crypto import make_master_key
 from vaultwarden.utils.logger import log_raise_for_status
+
+if typing.TYPE_CHECKING:
+    from vaultwarden.models.bitwarden import (
+        CipherDetails,
+        Kdf,
+        Organization,
+        OrganizationCollection,
+    )
 
 
 class BitwardenAPIClient:
@@ -157,3 +166,85 @@ class BitwardenAPIClient:
             resp = self._api_request("GET", "api/sync")
             self._sync = SyncData.model_validate_json(resp.text)
         return self._sync
+
+    #    def create_organization(self, name, email=None) -> "Organization":
+    #        pass
+
+    #    def get_organization(self, name) -> "Organization":
+    #        pass
+
+    def create_user(
+        self,
+        email: str,
+        password: str,
+        name,
+        kdf: "Kdf",
+    ):
+        from base64 import b64encode
+        import json
+
+        from vaultwarden.models.bitwarden import KeysData, RegisterData
+        from vaultwarden.utils import crypto
+
+        hashedpw, master_key = crypto.hash_password(password, email, kdf=kdf)
+
+        ekey, key = crypto.make_sym_key(master_key)
+        easymk, pub_asymk, priv_asymk = crypto.make_asym_key(key)
+        bpub_asymk = b64encode(pub_asymk).decode()
+
+        payload = RegisterData.model_validate(
+            {
+                "email": email,
+                **kdf.model_dump(exclude_unset=True, exclude_none=True),
+                "masterPasswordHint": "x",
+                "masterPasswordHash": hashedpw.decode(),
+                "name": name,
+                "key": ekey,
+                "keys": KeysData.model_validate(
+                    {"encryptedPrivateKey": easymk, "publicKey": bpub_asymk}
+                ),
+            }
+        )
+        data = payload.model_dump(exclude_none=True, exclude_unset=True)
+        print(json.dumps(data, indent=2))
+        resp = self._api_request("POST", "api/accounts/register", json=data)
+        print(resp.text)
+
+    def create_item(
+        self,
+        item: "CipherDetails",
+        organization: typing.Optional["Organization"],
+        collections: list["OrganizationCollection"] | None,
+    ) -> "CipherDetails":
+        if organization or collections:
+            assert (
+                organization and collections is not None and len(collections)
+            )
+            path = "api/ciphers/admin"
+            key = organization.key()
+            item.OrganizationId = organization.Id
+            data = {
+                "type": item.Type,
+                "cipher": item.model_dump(
+                    by_alias=True, mode="json", context={"cctx": [key]}
+                ),
+                "collectionIds": [str(i.Id) for i in collections],
+            }
+        else:
+            path = "api/ciphers"
+            assert self.connect_token is not None
+            key = item.key or self.connect_token.user_key
+
+            data = item.model_dump(
+                by_alias=True, mode="json", context={"cctx": [key]}
+            )
+
+        resp = self._api_request("POST", path, json=data)
+
+        import json
+
+        print(json.dumps(resp.json(), indent=2))
+
+        from vaultwarden.models.bitwarden import CipherDetail
+
+        return CipherDetail.validate_json(resp.text, context={"cctx": [key]})

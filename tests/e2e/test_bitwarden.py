@@ -1,14 +1,13 @@
 import os
-import unittest
 from pathlib import Path
+import unittest
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import get_organization
 
-
 env = Path("tests/.env").read_text()
 for line in env.splitlines():
-    k,v = line.strip().split(":", maxsplit=1)
+    k, v = line.strip().split(":", maxsplit=1)
     v = v.strip().strip('"')
     if os.environ.get(k) is None:
         print(f"{k} = {v}")
@@ -152,6 +151,62 @@ class BitwardenBaseTests:
     def test_deduplicate(self):
         # Todo build test fixtures and delete them at the end of the test
         return
+
+    def test_create_user(self):
+        from vaultwarden.models.bitwarden import Kdf, KdfType
+
+        argon2id = Kdf.model_construct(
+            Kdf=KdfType.Argon2id,
+            KdfMemory=32,
+            KdfIterations=6,
+            KdfParallelism=4,
+        )
+        bitwarden.create_user(
+            "test@examle.org", "test", "test user", kdf=argon2id
+        )
+
+    def test_create_org_login(self):
+        from secrets import token_bytes
+
+        from vaultwarden.models.bitwarden import Login, LoginData
+
+        for name, key in [("with key", token_bytes(32)), ("no key", None)]:
+            data = LoginData.model_construct(
+                name=name,
+                password="test123",
+                username="test",
+                key=key,
+            )
+            item = Login.model_construct(
+                name=name,
+                login=data,
+                data=data,
+            )
+            bitwarden.create_item(
+                item, self.organization, collections=self.test_colls_ids
+            )
+
+    def test_create_own_login(self):
+        from secrets import token_bytes
+
+        from vaultwarden.models.bitwarden import Login, LoginData
+
+        for name, key in [
+            ("own with key", token_bytes(32)),
+            ("own no key", None),
+        ]:
+            data = LoginData.model_construct(
+                name=name,
+                password="test123",
+                username="test",
+                key=key,
+            )
+            item = Login.model_construct(
+                name=name,
+                login=data,
+                data=data,
+            )
+            bitwarden.create_item(item, None, collections=self.test_colls_ids)
 
 
 class BitwardenWithEmailTests(unittest.TestCase, BitwardenBaseTests):

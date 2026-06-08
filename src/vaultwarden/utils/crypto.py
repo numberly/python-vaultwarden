@@ -39,32 +39,41 @@ class _Cipher:
     TYPE: int
     ENCODING: str
     @classmethod
-    def encrypt(cls, plainbytes:bytes, key:bytes) -> str:
+    def encode(cls, plainbytes:bytes, key:bytes) -> str:
         raise NotImplementedError()
 
-    def decrypt(self, data:bytes, key: bytes) -> bytes:
+    @classmethod
+    def decode(cls, data, key) -> bytes:
+        raise NotImplementedError()
+
+    def _decrypt(self, data:bytes, key: bytes) -> bytes:
         raise NotImplementedError()
 
 class AsymmetricCipher(_Cipher):
     TYPE = CIPHERS.asym
     ENCODING = "{typ}.{b64_ct}"
     @classmethod
-    def parse(cls, ct:str) -> tuple[typing.Self, bytes]:
+    def _parse(cls, ct:str) -> tuple[typing.Self, bytes]:
         return cls(), b64decode(ct)
 
+    def _decrypt(self, ct:bytes, key: RSA.RsaKey) -> bytes:
+        assert isinstance(ct, bytes)
+        assert isinstance(key, RSA.RsaKey)
+        return PKCS1_OAEP.new(key).decrypt(ct)
+
     @classmethod
-    def encrypt(cls, plainbytes: bytes, key: RSA.RsaKey):
+    def encode(cls, plainbytes: bytes, key: RSA.RsaKey):
         assert isinstance(plainbytes, bytes)
         assert isinstance(key, RSA.RsaKey)
         cipher = PKCS1_OAEP.new(key).encrypt(plainbytes)
         b64_ct = b64encode(cipher).decode()
         return cls.ENCODING.format(cipher=cipher, b64_ct=b64_ct)
 
-    def decrypt(self, ct:bytes, key: RSA.RsaKey):
-        assert isinstance(ct, bytes)
-        assert isinstance(key, RSA.RsaKey)
-        return PKCS1_OAEP.new(key).decrypt(ct)
-
+    @classmethod
+    def decode(cls, data: str, key: RSA.RsaKey) -> bytes:
+        assert int(data[0]) == AsymmetricCipher.TYPE
+        cipher, ct = cls._parse(data[1:])
+        return cipher._decrypt(ct, key)
 
 class SymmetricCipher(_Cipher):
     TYPE = CIPHERS.sym
@@ -74,71 +83,66 @@ class SymmetricCipher(_Cipher):
         self._mac = mac
 
     @classmethod
-    def parse(cls, ct: str) -> tuple[typing.Self, bytes]:
+    def _parse(cls, ct: str) -> tuple[typing.Self, bytes]:
         iv, ct, mac = ct.split("|", 3)
         return cls(b64decode(iv), b64decode(mac)[0:32]), b64decode(ct)
 
-    @classmethod
-    def encrypt(cls, plainbytes: bytes, key: bytes) -> str:
-        assert isinstance(plainbytes, bytes)
-        assert isinstance(key, bytes)
-        return cls._encrypt_sym(plainbytes, key)
-
-
-    def decrypt(self, ct: bytes, key: bytes) -> bytes:
+    def _decrypt(self, ct: bytes, key: bytes) -> bytes:
         assert isinstance(ct, bytes)
         assert isinstance(key, bytes)
-        return SymmetricCipher._decrypt_sym(dct=ct, key=key, div=self._iv, dmac=self._mac)
-
-
-    @staticmethod
-    def _get_enc_mac(key:bytes) -> tuple[bytes, bytes]:
-        assert isinstance(key, bytes)
-        # symmetric master_key of the user
-        if len(key) == 32:
-            enc = hkdf_expand(key, b"enc", 32, sha256)
-            mac = hkdf_expand(key, b"mac", 32, sha256)
-        # symmetric key of an organization
-        elif len(key) == 64:
-            enc = key[:32]
-            mac = key[32:]
-        return enc, mac
-
-    @staticmethod
-    def _decrypt_sym(dct:bytes, key:bytes, div:bytes, dmac:bytes) -> bytes:
-        assert isinstance(dct, bytes)
-        assert isinstance(key, bytes)
-        assert isinstance(div, bytes)
-        assert isinstance(dmac, bytes)
-
         enc, mac = SymmetricCipher._get_enc_mac(key)
-        hdmac = hmac_new(mac, div + dct, sha256).digest()
-        if hdmac != dmac:
+        hdmac = hmac_new(mac, self._iv + ct, sha256).digest()
+        if hdmac != self._mac:
             raise DecryptError(
-                f"Symmetric hmac verification failed {bytes(hdmac).hex()} / {bytes(dmac).hex()}. Check your password."
+                f"Symmetric hmac verification failed {bytes(hdmac).hex()} / {bytes(self._mac).hex()}. Check your password."
             )
-        c = AES.new(enc, AES.MODE_CBC, div)
-        plaintext = c.decrypt(dct)
+        c = AES.new(enc, AES.MODE_CBC, self._iv)
+        plaintext = c.decrypt(ct)
         pad_len = plaintext[-1]
         padding = bytes([pad_len] * pad_len)
         if plaintext[-pad_len:] == padding:
             plaintext = plaintext[:-pad_len]
         return plaintext
 
+
     @classmethod
-    def _encrypt_sym(cls, plaintext: bytes, key: bytes) -> str:
-        assert isinstance(plaintext, bytes)
+    def encode(cls, plainbytes: bytes, key: bytes) -> str:
+        assert isinstance(plainbytes, bytes)
         assert isinstance(key, bytes)
         # inspired from bitwarden/jslib:src/services/crypto.service.ts
         typ = int(CIPHERS.sym)
-        (iv, ct, mac) = aes_encrypt(plaintext, key)
+        (iv, ct, mac) = aes_encrypt(plainbytes, key)
         # jslib: encrypt()
         b64_iv = b64encode(iv).decode()
         b64_ct = b64encode(ct).decode()
         b64_digest = ""
         if mac:
             b64_digest = b64encode(mac).decode()
-        return cls.ENCODING.format(typ=CIPHERS.sym, b64_iv=b64_iv, b64_ct=b64_ct,b64_digest=b64_digest)
+        return cls.ENCODING.format(typ=CIPHERS.sym, b64_iv=b64_iv, b64_ct=b64_ct, b64_digest=b64_digest)
+
+    @classmethod
+    def decode(cls, data: str, key: bytes) -> bytes:
+        assert int(data[0]) == SymmetricCipher.TYPE
+        cipher, ct = cls._parse(data[1:])
+        return cipher._decrypt(ct, key)
+
+
+    @staticmethod
+    def _get_enc_mac(key:bytes) -> tuple[bytes, bytes]:
+        assert isinstance(key, bytes)
+        #
+        match len(key):
+            case 32:
+                """symmetric master_key of the user"""
+                enc = hkdf_expand(key, b"enc", 32, sha256)
+                mac = hkdf_expand(key, b"mac", 32, sha256)
+            case 64:
+                """symmetric key of an organization"""
+                enc = key[:32]
+                mac = key[32:]
+            case _:
+                raise ValueError(f"Invalid key type {key!r}")
+        return enc, mac
 
 
 class BinarySymmetricCipher:
@@ -149,27 +153,40 @@ class BinarySymmetricCipher:
         self._mac = mac
 
     @classmethod
-    def parse(cls, cipher_bytes: bytes) -> tuple[typing.Self, bytes]:
+    def _parse(cls, cipher_bytes: bytes) -> tuple[typing.Self, bytes]:
         iv = cipher_bytes[1:17]
         mac = cipher_bytes[17:49]
         ct = cipher_bytes[49:]
         return cls(iv, mac), ct
 
-
-    def decrypt(self, ct: bytes, key: bytes) -> bytes:
+    def _decrypt(self, ct: bytes, key: bytes) -> bytes:
         assert isinstance(ct, bytes)
         assert isinstance(key, bytes)
-        return SymmetricCipher._decrypt_sym(dct=ct, key=key, div=self._iv, dmac=self._mac)
+        enc, mac = SymmetricCipher._get_enc_mac(key)
+        hdmac = hmac_new(mac, self._iv + ct, sha256).digest()
+        if hdmac != self._mac:
+            raise DecryptError(
+                f"Symmetric hmac verification failed {bytes(hdmac).hex()} / {bytes(self._mac).hex()}. Check your password."
+            )
+        c = AES.new(enc, AES.MODE_CBC, self._iv)
+        plaintext = c.decrypt(ct)
+        pad_len = plaintext[-1]
+        padding = bytes([pad_len] * pad_len)
+        if plaintext[-pad_len:] == padding:
+            plaintext = plaintext[:-pad_len]
+        return plaintext
 
 
-    @classmethod
-    def encrypt(cls, plainbytes: bytes, key: bytes) -> bytes:
-        assert isinstance(plainbytes, bytes)
+    def decode(cls, data: bytes, key: bytes) -> bytes:
+        assert isinstance(data, bytes)
         assert isinstance(key, bytes)
-        return cls._encrypt_sym_bytes(plainbytes, key)
+        assert int(data[0]) == SymmetricCipher.TYPE
+        cipher, ct = cls._parse(data[1:])
+        return cipher._decrypt(ct, key)
+
 
     @classmethod
-    def _encrypt_sym_bytes(cls, plainbytes: bytes, key: bytes) -> bytes:
+    def encode(cls, plainbytes: bytes, key: bytes) -> bytes:
         assert isinstance(plainbytes, bytes)
         assert isinstance(key, bytes)
         # inspired from bitwarden/jslib:src/services/crypto.service.ts
@@ -228,35 +245,6 @@ class DecryptError(ValueError):
     """."""
 
 
-# def decode_cipher_string(cipher_string: str) -> tuple[_Cipher, bytes]:
-#     """decode a cipher tring into it's parts"""
-#     assert isinstance(cipher_string, str)
-#     if not ENCRYPTED_STRING_RE.match(cipher_string):
-#         raise WrongFormatError(f"{cipher_string}")
-#     try:
-#         typ = CIPHERS(int(cipher_string[0:1]))
-#         assert typ < 9
-#     except (AssertionError, ValueError):
-#         raise WrongTypeDecryptError(f"{typ} is not valid")
-#     data = cipher_string[2:]
-#     match typ:
-#         case CIPHERS.asym:
-#             return AsymmetricCipher.parse(data)
-#         case CIPHERS.sym:
-#             return SymmetricCipher.parse(data)
-#         case CIPHERS.null:
-#             return NullCipher.parse(data)
-
-
-#def is_encrypted(cipher_string: str) -> bool: # FIXME unused
-#    try:
-#        decode_cipher_string(cipher_string)
-#    except DecodeEncKeyError:
-#        return False
-#    else:
-#        return True
-
-
 def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
     import vaultwarden.models.bitwarden
 
@@ -298,17 +286,6 @@ def hash_password(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.K
     return base64.b64encode(hashpw), master_key
 
 
-# def load_rsa_key(key: bytes) -> RSA.RsaKey:
-#     rsakeys = CACHE.setdefault("rsa", {})
-#     if not isinstance(key, RSA.RsaKey):
-#         try:
-#             key = rsakeys[key]
-#         except KeyError:
-#             rsakeys[key] = RSA.importKey(key)
-#             key = rsakeys[key]
-#     return key
-
-
 def aes_encrypt(plaintext: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:
     assert isinstance(plaintext, bytes)
     assert isinstance(key, bytes)
@@ -324,43 +301,6 @@ def aes_encrypt(plaintext: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:
     cmac = hmac_new(mac, iv + ct, sha256)
     return iv, ct, cmac.digest()
 
-#
-# def encrypt_sym_to_bytes(plaintext: str, key: bytes): # FIXME migrated
-#     assert isinstance(plaintext, str)
-#     return BinarySymmetricCipher.encrypt(plaintext.encode("utf-8"), key)
-
-
-# def encrypt(typ:CIPHERS|int, plaintext: str, key: bytes):
-#     assert isinstance(typ, (CIPHERS, int)), typ
-#     assert isinstance(plaintext, str)
-#     assert isinstance(key, bytes)
-#
-#     plainbytes = plaintext.encode("utf-8")
-#     match typ:
-#         case AsymmetricCipher.TYPE:
-#             return AsymmetricCipher.encrypt(plainbytes, key)
-#         case SymmetricCipher.TYPE:
-#             return SymmetricCipher.encrypt(plainbytes, key)
-#         case _:
-#             raise UnimplementedError(f"can not encrypt type:{typ}")
-
-
-
-# def decrypt_bytes(cipher_bytes: bytes, key: bytes): # FIXME UNUSED
-#     assert isinstance(cipher_bytes, bytes)
-#     assert isinstance(key, bytes)
-#     typ = cipher_bytes[0]
-#     match typ:
-#         case SymmetricCipher.TYPE:
-#             cipher, ct = BinarySymmetricCipher.parse(cipher_bytes)
-#             return cipher.decrypt(ct, key)
-#         case _:
-#             raise UnimplementedError(f"{typ} encType decryption is not implemented")
-
-#def decrypt(cipher_string: str, key:bytes) -> bytes:
-#    assert isinstance(cipher_string, str)
-#    cipher, ct = decode_cipher_string(cipher_string)
-#    return cipher.decrypt(ct, key)
 
 def strech_key(key: bytes) -> bytes:
     stretched_key = key
@@ -373,7 +313,7 @@ def strech_key(key: bytes) -> bytes:
 def make_sym_key(master_key: bytes) -> tuple[str, bytes]: # FIXME UNUSED
     stretched_key = strech_key(master_key)
     plaintext = token_bytes(64)
-    return SymmetricCipher.encrypt(plaintext, stretched_key), plaintext
+    return SymmetricCipher.encode(plaintext, stretched_key), plaintext
 
 
 def make_asym_key(key:bytes, stretch=True) -> tuple[str, bytes, bytes]:  # FIXME UNUSED
@@ -382,7 +322,7 @@ def make_asym_key(key:bytes, stretch=True) -> tuple[str, bytes, bytes]:  # FIXME
     asym_key = RSA.generate(2048)
     public_key = asym_key.publickey().exportKey("DER")
     private_key = asym_key.exportKey("DER", pkcs=8)
-    return SymmetricCipher.encrypt(private_key, key), public_key, private_key
+    return SymmetricCipher.encode(private_key, key), public_key, private_key
 
 
 def gen_password(length=32, alphabet=None) -> str:  # FIXME UNUSED

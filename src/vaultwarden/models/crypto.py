@@ -22,9 +22,7 @@ def decode_org_key(
         if not isinstance(key, RSA.RsaKey):
             continue
         try:
-            assert int(value[0]) == AsymmetricCipher.TYPE
-            cipher, ct = AsymmetricCipher.parse(value[1:])
-            return handler(cipher.decrypt(ct, key))
+            return handler(AsymmetricCipher.decode(value, key))
         except Exception as e:
             print(e)
             continue
@@ -39,7 +37,7 @@ def encode_org_key(
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     if keys:
-        return handler(AsymmetricCipher.encrypt(value, keys[-2]))
+        return handler(AsymmetricCipher.encode(value, keys[-2]))
     raise ValueError("No key found")
 
 
@@ -55,8 +53,7 @@ def decode_string(
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     for key in keys[::-1]:
         try:
-            cipher, ct = SymmetricCipher.parse(handler(value)[1:])
-            return handler(cipher.decrypt(ct, key))
+            return handler(SymmetricCipher.decode(value, key))
         except Exception as e:
             print(e)
             continue
@@ -69,7 +66,7 @@ def encode_string(
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     if keys:
-        return handler(SymmetricCipher.encrypt(value.encode(), keys[-1]))
+        return handler(SymmetricCipher.encode(value.encode(), keys[-1]))
     raise ValueError("No key found")
 
 
@@ -85,9 +82,7 @@ def decode_cipher_key(
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     for key in keys[-2::-1]:  # not last element - reverse
         try:
-            assert int(value[0]) == SymmetricCipher.TYPE
-            cipher, ct = SymmetricCipher.parse(value[1:])
-            return handler(cipher.decrypt(ct, key))
+            return handler(SymmetricCipher.decode(value, key))
         except Exception as e:
             print(e)
             continue
@@ -102,7 +97,7 @@ def encode_cipher_key(
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     if keys:
-        return handler(SymmetricCipher.encrypt(value, keys[-2]))
+        return handler(SymmetricCipher.encode(value, keys[-2]))
     raise ValueError("No key found")
 
 
@@ -111,33 +106,32 @@ SecretCipherKey = Annotated[
 ]
 
 
-def decode_bytes(
+def decode_key(
     value: str, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
 ) -> bytes:
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     for key in keys[::-1]:
         try:
-            cipher, ct = SymmetricCipher.parse(value[1:])
-            return handler(cipher.decrypt(ct, key))
+            return handler(SymmetricCipher.decode(value, key))
         except Exception as e:
             print(e)
             continue
     raise ValueError("No key found")
 
 
-def encode_bytes(
+def encode_key(
     value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
 ) -> bytes:
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     if keys:
-        SymmetricCipher.encrypt(handler(value), keys[-1])
+        SymmetricCipher.encode(handler(value), keys[-1])
     raise ValueError("No key found")
 
 
-SecretBytes = Annotated[
-    bytes, WrapValidator(decode_bytes), WrapSerializer(encode_bytes)
+SecretKey = Annotated[
+    bytes, WrapValidator(decode_key), WrapSerializer(encode_key)
 ]
 
 
@@ -148,8 +142,7 @@ def decode_rsa(
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     for key in keys[::-1]:
         try:
-            cipher, ct = SymmetricCipher.parse(value[1:])
-            return handler(RSA.importKey(cipher.decrypt(ct, key)))
+            return handler(RSA.importKey(SymmetricCipher.decode(value, key)))
         except Exception as e:
             print(e)
             continue
@@ -164,8 +157,10 @@ def encode_rsa(
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     if keys:
-        SymmetricCipher.encrypt(
-            handler(value.exportKey("DER", pkcs=8)), keys[-1]
+        return handler(
+            SymmetricCipher.encode(
+                handler(value.exportKey("DER", pkcs=8)), keys[-1]
+            )
         )
     raise ValueError("No key found")
 

@@ -55,24 +55,6 @@ class ResplistBitwarden(PermissiveBaseModel, Generic[T]):
     Data: list[T]
 
 
-# class BitwardenBaseModel(PermissiveBaseModel):
-#     bitwarden_client: "BitwardenAPIClient" | None = Field(
-#         default=None, validate_default=True, exclude=True
-#     )
-#
-#     @field_validator("bitwarden_client")
-#     @classmethod
-#     def set_client(cls, v, info: FieldValidationInfo):
-#         if v is None and info.context is not None:
-#             return info.context.get("client")
-#         return v
-#
-#     @property
-#     def api_client(self) -> "BitwardenAPIClient":
-#         assert self.bitwarden_client is not None
-#         return self.bitwarden_client
-
-
 class BitwardenBaseModel(PermissiveBaseModel):
     _bitwarden_client: Any = PrivateAttr(default=None)
 
@@ -249,16 +231,15 @@ class _CipherBase(BitwardenBaseModel):
         if (key := data.get("key")) is not None:
             context = cast("dict", info.context)
             cctx = cast("list[bytes]", context.get("cctx"))
+            v = SymmetricCipher.decode(key, cctx[-1])
+            cctx.append(v)
 
-            cipher, ct = SymmetricCipher.parse(key[1:])
-            cctx.append(cipher.decrypt(ct, cctx[-1]))
-
-        v = handler(data)
+        r = handler(data)
 
         if key is not None:
             cctx.pop()
 
-        return v
+        return r
 
     @model_serializer(mode="wrap")
     def ser_set_key(
@@ -794,7 +775,7 @@ class Organization(BitwardenBaseModel):
     def create_collection(self, name: str) -> OrganizationCollection:
         org_key = self.key()
         data = {
-            "name": SymmetricCipher.encrypt(name.encode("utf-8"), org_key),
+            "name": SymmetricCipher.encode(name.encode("utf-8"), org_key),
             "groups": [],
             "users": [],
         }

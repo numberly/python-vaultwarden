@@ -13,7 +13,7 @@ from pydantic import (
 )
 
 from vaultwarden.models.crypto import (
-    SecretBytes,
+    SecretKey,
     SecretOrganizationKey,
     SecretRSA,
 )
@@ -27,7 +27,7 @@ class ConnectToken(PermissiveBaseModel):
     KdfIterations: int = 0
     KdfMemory: int | None = None
     KdfParallelism: int | None = None
-    Key: SecretBytes
+    Key: SecretKey
     PrivateKey: SecretRSA
     access_token: str
     refresh_token: str | None = None
@@ -121,7 +121,7 @@ class UserProfile(PermissiveBaseModel):
     EmailVerified: bool
     ForcePasswordReset: bool
     Id: UUID
-    Key: SecretBytes
+    Key: SecretKey
     MasterPasswordHint: str | None = None
     Name: str | None
     Object: str | None
@@ -151,8 +151,7 @@ class UserProfile(PermissiveBaseModel):
         if (key := data.get("key")) is not None:
             context = cast("dict", info.context)
             cctx = cast("list[bytes]", context.get("cctx"))
-            cipher, ct = SymmetricCipher.parse(key[1:])
-            v = cipher.decrypt(ct, cctx[-1])
+            v = SymmetricCipher.decode(key, cctx[-1])
             cctx.append(v)
 
         r = handler(data)

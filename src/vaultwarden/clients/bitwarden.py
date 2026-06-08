@@ -77,7 +77,7 @@ class BitwardenAPIClient:
 
         import vaultwarden.models.bitwarden
 
-        self._connect_token.master_key = make_master_key(
+        self._connect_token._master_key = make_master_key(
             password=self.password,
             salt=self.email,
             kdf=vaultwarden.models.bitwarden.Kdf.from_connect_token(
@@ -102,6 +102,9 @@ class BitwardenAPIClient:
         resp = self._http_client.post(
             "identity/connect/token", headers=headers, data=payload
         )
+        self._connect_token = ConnectToken.model_validate_json(
+            resp.text, context={"client": self}
+        )
         self._connect_token = ConnectToken.model_validate_json(resp.text)
 
         if self.email is None:
@@ -117,7 +120,7 @@ class BitwardenAPIClient:
 
         import vaultwarden.models.bitwarden
 
-        self._connect_token.master_key = make_master_key(
+        self._connect_token._master_key = make_master_key(
             password=self.password,
             salt=self.email,
             kdf=vaultwarden.models.bitwarden.Kdf.from_connect_token(
@@ -163,8 +166,21 @@ class BitwardenAPIClient:
 
     def sync(self, force_refresh: bool = False) -> SyncData:
         if self._sync is None or force_refresh:
+            assert (
+                self._connect_token
+                and self._connect_token.user_key
+                and self._connect_token._master_key
+            )
             resp = self._api_request("GET", "api/sync")
-            self._sync = SyncData.model_validate_json(resp.text)
+            self._sync = SyncData.model_validate_json(
+                resp.text,
+                context={
+                    "cctx": [
+                        self._connect_token.orgs_key,
+                        self._connect_token._master_key,
+                    ]
+                },
+            )
         return self._sync
 
     #    def create_organization(self, name, email=None) -> "Organization":
@@ -201,9 +217,11 @@ class BitwardenAPIClient:
                 "name": name,
                 "key": ekey,
                 "keys": KeysData.model_validate(
-                    {"encryptedPrivateKey": easymk, "publicKey": bpub_asymk}
+                    {"encryptedPrivateKey": easymk, "publicKey": bpub_asymk},
+                    context={"client": self},
                 ),
-            }
+            },
+            context={"client": self},
         )
         data = payload.model_dump(exclude_none=True, exclude_unset=True)
         print(json.dumps(data, indent=2))
@@ -216,10 +234,10 @@ class BitwardenAPIClient:
         organization: typing.Optional["Organization"],
         collections: list["OrganizationCollection"] | None,
     ) -> "CipherDetails":
-        if organization or collections:
-            assert (
-                organization and collections is not None and len(collections)
-            )
+        if organization:
+            assert organization and (
+                collections is not None and len(collections)
+            ), (organization, collections)
             path = "api/ciphers/admin"
             key = organization.key()
             item.OrganizationId = organization.Id
@@ -233,8 +251,7 @@ class BitwardenAPIClient:
         else:
             path = "api/ciphers"
             assert self.connect_token is not None
-            key = item.key or self.connect_token.user_key
-
+            key = self.connect_token.user_key
             data = item.model_dump(
                 by_alias=True, mode="json", context={"cctx": [key]}
             )

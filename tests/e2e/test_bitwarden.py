@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import string
 import unittest
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
@@ -161,8 +162,13 @@ class BitwardenBaseTests:
             KdfIterations=6,
             KdfParallelism=4,
         )
+        import random
+
+        rnd = "".join(
+            random.choices(string.ascii_letters + string.digits, k=10)
+        )
         bitwarden.create_user(
-            "test@examle.org", "test", "test user", kdf=argon2id
+            f"test+{rnd}@examle.org", "test", "test user", kdf=argon2id
         )
 
     def test_create_org_login(self):
@@ -170,17 +176,20 @@ class BitwardenBaseTests:
 
         from vaultwarden.models.bitwarden import Login, LoginData
 
-        for name, key in [("with key", token_bytes(32)), ("no key", None)]:
+        for name, key in [
+            ("org - with key", token_bytes(64)),
+            ("org - no key", None),
+        ]:
             data = LoginData.model_construct(
                 name=name,
                 password="test123",
                 username="test",
-                key=key,
             )
             item = Login.model_construct(
                 name=name,
                 login=data,
                 data=data,
+                key=key,
             )
             bitwarden.create_item(
                 item, self.organization, collections=self.test_colls_ids
@@ -192,19 +201,19 @@ class BitwardenBaseTests:
         from vaultwarden.models.bitwarden import Login, LoginData
 
         for name, key in [
-            ("own with key", token_bytes(32)),
-            ("own no key", None),
+            ("own - with key", token_bytes(64)),
+            ("own - no key", None),
         ]:
             data = LoginData.model_construct(
                 name=name,
                 password="test123",
                 username="test",
-                key=key,
             )
             item = Login.model_construct(
                 name=name,
                 login=data,
                 data=data,
+                key=key,
             )
             bitwarden.create_item(item, None, collections=self.test_colls_ids)
 

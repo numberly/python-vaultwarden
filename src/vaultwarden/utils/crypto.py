@@ -228,33 +228,33 @@ class DecryptError(ValueError):
     """."""
 
 
-def decode_cipher_string(cipher_string: str) -> tuple[_Cipher, bytes]:
-    """decode a cipher tring into it's parts"""
-    assert isinstance(cipher_string, str)
-    if not ENCRYPTED_STRING_RE.match(cipher_string):
-        raise WrongFormatError(f"{cipher_string}")
-    try:
-        typ = CIPHERS(int(cipher_string[0:1]))
-        assert typ < 9
-    except (AssertionError, ValueError):
-        raise WrongTypeDecryptError(f"{typ} is not valid")
-    data = cipher_string[2:]
-    match typ:
-        case CIPHERS.asym:
-            return AsymmetricCipher.parse(data)
-        case CIPHERS.sym:
-            return SymmetricCipher.parse(data)
-        case CIPHERS.null:
-            return NullCipher.parse(data)
+# def decode_cipher_string(cipher_string: str) -> tuple[_Cipher, bytes]:
+#     """decode a cipher tring into it's parts"""
+#     assert isinstance(cipher_string, str)
+#     if not ENCRYPTED_STRING_RE.match(cipher_string):
+#         raise WrongFormatError(f"{cipher_string}")
+#     try:
+#         typ = CIPHERS(int(cipher_string[0:1]))
+#         assert typ < 9
+#     except (AssertionError, ValueError):
+#         raise WrongTypeDecryptError(f"{typ} is not valid")
+#     data = cipher_string[2:]
+#     match typ:
+#         case CIPHERS.asym:
+#             return AsymmetricCipher.parse(data)
+#         case CIPHERS.sym:
+#             return SymmetricCipher.parse(data)
+#         case CIPHERS.null:
+#             return NullCipher.parse(data)
 
 
-def is_encrypted(cipher_string: str) -> bool: # FIXME unused
-    try:
-        decode_cipher_string(cipher_string)
-    except DecodeEncKeyError:
-        return False
-    else:
-        return True
+#def is_encrypted(cipher_string: str) -> bool: # FIXME unused
+#    try:
+#        decode_cipher_string(cipher_string)
+#    except DecodeEncKeyError:
+#        return False
+#    else:
+#        return True
 
 
 def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
@@ -324,43 +324,43 @@ def aes_encrypt(plaintext: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:
     cmac = hmac_new(mac, iv + ct, sha256)
     return iv, ct, cmac.digest()
 
-
-def encrypt_sym_to_bytes(plaintext: str, key: bytes): # FIXME migrated
-    assert isinstance(plaintext, str)
-    return BinarySymmetricCipher.encrypt(plaintext.encode("utf-8"), key)
-
-
-def encrypt(typ:CIPHERS|int, plaintext: str, key: bytes):
-    assert isinstance(typ, (CIPHERS, int)), typ
-    assert isinstance(plaintext, str)
-    assert isinstance(key, bytes)
-
-    plainbytes = plaintext.encode("utf-8")
-    match typ:
-        case AsymmetricCipher.TYPE:
-            return AsymmetricCipher.encrypt(plainbytes, key)
-        case SymmetricCipher.TYPE:
-            return SymmetricCipher.encrypt(plainbytes, key)
-        case _:
-            raise UnimplementedError(f"can not encrypt type:{typ}")
+#
+# def encrypt_sym_to_bytes(plaintext: str, key: bytes): # FIXME migrated
+#     assert isinstance(plaintext, str)
+#     return BinarySymmetricCipher.encrypt(plaintext.encode("utf-8"), key)
 
 
+# def encrypt(typ:CIPHERS|int, plaintext: str, key: bytes):
+#     assert isinstance(typ, (CIPHERS, int)), typ
+#     assert isinstance(plaintext, str)
+#     assert isinstance(key, bytes)
+#
+#     plainbytes = plaintext.encode("utf-8")
+#     match typ:
+#         case AsymmetricCipher.TYPE:
+#             return AsymmetricCipher.encrypt(plainbytes, key)
+#         case SymmetricCipher.TYPE:
+#             return SymmetricCipher.encrypt(plainbytes, key)
+#         case _:
+#             raise UnimplementedError(f"can not encrypt type:{typ}")
 
-def decrypt_bytes(cipher_bytes: bytes, key: bytes): # FIXME UNUSED
-    assert isinstance(cipher_bytes, bytes)
-    assert isinstance(key, bytes)
-    typ = cipher_bytes[0]
-    match typ:
-        case SymmetricCipher.TYPE:
-            cipher, ct = BinarySymmetricCipher.parse(cipher_bytes)
-            return cipher.decrypt(ct, key)
-        case _:
-            raise UnimplementedError(f"{typ} encType decryption is not implemented")
 
-def decrypt(cipher_string: str, key:bytes) -> bytes:
-    assert isinstance(cipher_string, str)
-    cipher, ct = decode_cipher_string(cipher_string)
-    return cipher.decrypt(ct, key)
+
+# def decrypt_bytes(cipher_bytes: bytes, key: bytes): # FIXME UNUSED
+#     assert isinstance(cipher_bytes, bytes)
+#     assert isinstance(key, bytes)
+#     typ = cipher_bytes[0]
+#     match typ:
+#         case SymmetricCipher.TYPE:
+#             cipher, ct = BinarySymmetricCipher.parse(cipher_bytes)
+#             return cipher.decrypt(ct, key)
+#         case _:
+#             raise UnimplementedError(f"{typ} encType decryption is not implemented")
+
+#def decrypt(cipher_string: str, key:bytes) -> bytes:
+#    assert isinstance(cipher_string, str)
+#    cipher, ct = decode_cipher_string(cipher_string)
+#    return cipher.decrypt(ct, key)
 
 def strech_key(key: bytes) -> bytes:
     stretched_key = key

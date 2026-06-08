@@ -1,4 +1,3 @@
-from contextvars import ContextVar
 import datetime
 import sys
 from typing import (
@@ -17,9 +16,8 @@ from pydantic import (
     AliasChoices,
     Field,
     ModelWrapValidatorHandler,
+    PrivateAttr,
     TypeAdapter,
-    WrapSerializer,
-    WrapValidator,
     field_validator,
     model_serializer,
     model_validator,
@@ -29,18 +27,18 @@ from pydantic_core.core_schema import (
     SerializationInfo,
     SerializerFunctionWrapHandler,
     ValidationInfo,
-    ValidatorFunctionWrapHandler,
 )
 from typing_extensions import Self
 
-from vaultwarden.clients.bitwarden import BitwardenAPIClient
+from vaultwarden.models.crypto import SecretCipherKey, SecretString
 from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
-from vaultwarden.utils.crypto import SymmetricCipher, decrypt, encrypt
+from vaultwarden.utils.crypto import SymmetricCipher
 
 if TYPE_CHECKING:
     import vaultwarden.clients.bitwarden
+    from vaultwarden.clients.bitwarden import BitwardenAPIClient
 
 if sys.version_info < (3, 12):
     from typing_extensions import Self
@@ -52,94 +50,49 @@ else:
 
 T = TypeVar("T", bound="BitwardenBaseModel")
 
-_init_context_var = ContextVar("_init_context_var", default=None)
-
-
-# @contextmanager
-# def init_context(value: dict[str, Any]) -> Generator[None]:
-#    token = _init_context_var.set(value)
-#    try:
-#        yield
-#    finally:
-#        _init_context_var.reset(token)
-
 
 class ResplistBitwarden(PermissiveBaseModel, Generic[T]):
     Data: list[T]
 
 
-class BitwardenBaseModel(PermissiveBaseModel):
-    bitwarden_client: BitwardenAPIClient | None = Field(
-        default=None, validate_default=True, exclude=True
-    )
+# class BitwardenBaseModel(PermissiveBaseModel):
+#     bitwarden_client: "BitwardenAPIClient" | None = Field(
+#         default=None, validate_default=True, exclude=True
+#     )
+#
+#     @field_validator("bitwarden_client")
+#     @classmethod
+#     def set_client(cls, v, info: FieldValidationInfo):
+#         if v is None and info.context is not None:
+#             return info.context.get("client")
+#         return v
+#
+#     @property
+#     def api_client(self) -> "BitwardenAPIClient":
+#         assert self.bitwarden_client is not None
+#         return self.bitwarden_client
 
-    @field_validator("bitwarden_client")
+
+class BitwardenBaseModel(PermissiveBaseModel):
+    _bitwarden_client: Any = PrivateAttr(default=None)
+
+    @model_validator(mode="wrap")
     @classmethod
-    def set_client(cls, v, info: FieldValidationInfo):
-        if v is None and info.context is not None:
-            return info.context.get("client")
+    def val_set_client(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        assert info.context
+        v = handler(data)
+        v._bitwarden_client = info.context.get("client")
         return v
 
     @property
-    def api_client(self) -> BitwardenAPIClient:
-        assert self.bitwarden_client is not None
-        return self.bitwarden_client
-
-
-#    def _x_init__(self, /, **data: Any) -> None:
-#        # c.f. https://pydantic.dev/docs/validation/latest/concepts/serialization#serialization-context
-#        self.__pydantic_validator__.validate_python(
-#            data,
-#            self_instance=self,
-#            #            context=_init_context_var.get(),
-#        )
-
-
-def decode_bytes(
-    value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
-) -> bytes:
-    context: dict = cast("dict", info.context)
-    keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
-    for key in keys[::-1]:
-        try:
-            return decrypt(handler(value), key)
-        except Exception:
-            continue
-    raise ValueError("No key found")
-
-
-def encode_bytes(
-    value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-) -> bytes:
-    return encode_string(value, handler, info=info).encode("utf-8")
-
-
-def decode_string(
-    value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
-) -> str:
-    context: dict = cast("dict", info.context)
-    keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
-    for key in keys[::-1]:
-        try:
-            return decrypt(handler(value), key).decode()
-        except Exception:
-            continue
-    raise ValueError("No key found")
-
-
-def encode_string(
-    value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-) -> str:
-    context: dict = cast("dict", info.context)
-    keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
-    if keys:
-        return encrypt(2, handler(value), keys[0])
-    raise ValueError("No key found")
-
-
-EncryptedString = Annotated[
-    str, WrapValidator(decode_string), WrapSerializer(encode_string)
-]
+    def api_client(self) -> "BitwardenAPIClient":
+        assert self._bitwarden_client is not None
+        return self._bitwarden_client
 
 
 class UriMatch(BitwardenBaseModel):
@@ -147,8 +100,8 @@ class UriMatch(BitwardenBaseModel):
         extra = "forbid"
 
     match: int | None = None
-    uri: EncryptedString | None = None
-    uriChecksum: EncryptedString | None = None
+    uri: SecretString | None = None
+    uriChecksum: SecretString | None = None
     response: str | None = None
 
 
@@ -156,10 +109,10 @@ class XField(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    name: EncryptedString | None = None
-    response: EncryptedString | None = None
+    name: SecretString | None = None
+    response: SecretString | None = None
     type: int
-    value: EncryptedString | None = None
+    value: SecretString | None = None
     linkedId: str | None = None
 
 
@@ -167,15 +120,15 @@ class CipherLogin(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    name: EncryptedString | None = None
+    name: SecretString | None = None
     autofillOnPageLoad: bool | None = None
-    password: EncryptedString | None = None
+    password: SecretString | None = None
     passwordRevisionDate: datetime.datetime | None = None
     totp: str | None = None
-    uri: EncryptedString | None = None
+    uri: SecretString | None = None
     uris: list[UriMatch] | None = None
-    username: EncryptedString | None = None
-    notes: EncryptedString | None = None
+    username: SecretString | None = None
+    notes: SecretString | None = None
 
 
 class PasswordChange(BitwardenBaseModel):
@@ -190,20 +143,20 @@ class Fido2Credential(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    counter: EncryptedString | None = None
+    counter: SecretString | None = None
     creationDate: datetime.datetime | None = None
-    credentialId: EncryptedString | None = None
-    discoverable: EncryptedString | None = None
-    keyAlgorithm: EncryptedString | None = None
-    keyCurve: EncryptedString | None = None
-    keyType: EncryptedString | None = None
-    keyValue: EncryptedString | None = None
+    credentialId: SecretString | None = None
+    discoverable: SecretString | None = None
+    keyAlgorithm: SecretString | None = None
+    keyCurve: SecretString | None = None
+    keyType: SecretString | None = None
+    keyValue: SecretString | None = None
     response: str | None = None
-    rpId: EncryptedString | None = None
-    rpName: EncryptedString | None = None
-    userDisplayName: EncryptedString | None = None
-    userHandle: EncryptedString | None = None
-    userName: EncryptedString | None = None
+    rpId: SecretString | None = None
+    rpName: SecretString | None = None
+    userDisplayName: SecretString | None = None
+    userHandle: SecretString | None = None
+    userName: SecretString | None = None
 
 
 class LoginData(CipherLogin):
@@ -230,11 +183,11 @@ class SecureNoteProperty(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    name: EncryptedString | None = None
-    notes: EncryptedString | None = None
+    name: SecretString | None = None
+    notes: SecretString | None = None
     fields: list[XField] | None = None
     passwordHistory: list[PasswordChange] | None = None
-    response: EncryptedString | None = None
+    response: SecretString | None = None
     type: int
 
 
@@ -242,7 +195,7 @@ class Attachment(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    fileName: EncryptedString | None = None
+    fileName: SecretString | None = None
     id: str
     key: str | None = (
         None  # Annotated[str, WrapValidator(decodeBytes)]|None = None
@@ -260,16 +213,16 @@ class _CipherBase(BitwardenBaseModel):
     Id: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
     Type: CipherType
-    Name: EncryptedString
+    Name: SecretString
     CollectionIds: list[UUID]
-    key: str | None = None
+    key: SecretCipherKey | None = None
 
     organizationUseTotp: bool | None = None
     creationDate: datetime.datetime | None = None
     deletedDate: datetime.datetime | None = None
     fields: list[XField] | None = None
 
-    notes: EncryptedString | None = None
+    notes: SecretString | None = None
     reprompt: int
     revisionDate: str
     sshKey: str | None
@@ -291,11 +244,14 @@ class _CipherBase(BitwardenBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
+        key: str
+        cctx: list[bytes]
         if (key := data.get("key")) is not None:
             context = cast("dict", info.context)
             cctx = cast("list[bytes]", context.get("cctx"))
 
-            cctx.append(decrypt(key, cctx[0]))
+            cipher, ct = SymmetricCipher.parse(key[1:])
+            cctx.append(cipher.decrypt(ct, cctx[-1]))
 
         v = handler(data)
 
@@ -308,12 +264,17 @@ class _CipherBase(BitwardenBaseModel):
     def ser_set_key(
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> Any:
+        key: bytes | None
+        cctx: list[bytes]
         if (key := self.key) is not None:
             context = cast("dict", info.context)
             cctx = cast("list[bytes]", context.get("cctx"))
-            cctx.append(key.encode())
+            cctx.append(key)
 
         v = handler(self)
+
+        if key is not None:
+            cctx.pop()
 
         return v
 
@@ -453,7 +414,7 @@ class UserCollection(CollectionAccess):
 class OrganizationCollection(BitwardenBaseModel):
     Id: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
-    Name: str
+    Name: SecretString
     ExternalId: str | None = None
 
     @field_validator("OrganizationId")
@@ -543,14 +504,14 @@ class OrganizationUserDetails(BitwardenBaseModel):
         for collection in collections:
             if collection in _current_collections:
                 continue
-            user = UserCollection(
+            user = UserCollection.model_construct(
                 CollectionId=collection,
                 UserId=self.Id,
                 ReadOnly=False,
                 HidePasswords=False,
                 Manage=False,
             )
-            user.bitwarden_client = self.api_client
+            user._bitwarden_client = self.api_client
             self.Collections.append(user)
         pl = self.model_dump(
             include={
@@ -813,12 +774,12 @@ class Organization(BitwardenBaseModel):
         )
         res = ResplistBitwarden[OrganizationCollection].model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.api_client},
+            context={
+                "parent_id": self.Id,
+                "client": self.api_client,
+                "cctx": [self.key()],
+            },
         )
-        org_key = self.key()
-        # map each collection name to the decrypted name
-        for collection in res.Data:
-            collection.Name = decrypt(collection.Name, org_key).decode("utf-8")
         return res.Data
 
     def collections(
@@ -833,7 +794,7 @@ class Organization(BitwardenBaseModel):
     def create_collection(self, name: str) -> OrganizationCollection:
         org_key = self.key()
         data = {
-            "name": SymmetricCipher.encrypt(name.encode("utf-8"), self.key()),
+            "name": SymmetricCipher.encrypt(name.encode("utf-8"), org_key),
             "groups": [],
             "users": [],
         }
@@ -842,9 +803,12 @@ class Organization(BitwardenBaseModel):
         )
         res = OrganizationCollection.model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.api_client},
+            context={
+                "parent_id": self.Id,
+                "client": self.api_client,
+                "cctx": [org_key],
+            },
         )
-        res.Name = decrypt(res.Name, org_key).decode("utf-8")
         if self._collections is not None:
             self._collections.append(res)
         else:
@@ -904,14 +868,15 @@ class Organization(BitwardenBaseModel):
             ]
         return self._ciphers
 
-    def key(self):
+    def key(self) -> bytes:
         sync = self.api_client.sync()
         for org in sync.Profile.Organizations:
             if org.Id == self.Id:
                 break
         else:
             raise BitwardenError(f"No Organizations `{self.Id}` found")
-        return decrypt(org.Key, self.api_client.connect_token.orgs_key)
+        assert org and org.Key
+        return org.Key
 
 
 def get_organization(

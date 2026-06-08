@@ -19,7 +19,7 @@ def decode_org_key(
     context: dict = cast("dict", info.context)
     keys: list[bytes] = cast("list[bytes]", context.get("cctx"))
     for key in keys[::-1]:
-        if len(key) <= 64:
+        if not isinstance(key, RSA.RsaKey):
             continue
         try:
             assert int(value[0]) == AsymmetricCipher.TYPE

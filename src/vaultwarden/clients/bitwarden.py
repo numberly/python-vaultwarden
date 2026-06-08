@@ -6,7 +6,6 @@ from httpx import Client, Response
 
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
-from vaultwarden.utils.crypto import make_master_key
 from vaultwarden.utils.logger import log_raise_for_status
 
 if typing.TYPE_CHECKING:
@@ -73,16 +72,8 @@ class BitwardenAPIClient:
         resp = self._http_client.post(
             "identity/connect/token", headers=headers, data=payload
         )
-        self._connect_token = ConnectToken.model_validate_json(resp.text)
-
-        import vaultwarden.models.bitwarden
-
-        self._connect_token._master_key = make_master_key(
-            password=self.password,
-            salt=self.email,
-            kdf=vaultwarden.models.bitwarden.Kdf.from_connect_token(
-                self._connect_token
-            ),
+        self._connect_token = ConnectToken.model_validate_json(
+            resp.text, context={"client": self, "cctx": []}
         )
 
     def _set_connect_token(self):
@@ -103,9 +94,8 @@ class BitwardenAPIClient:
             "identity/connect/token", headers=headers, data=payload
         )
         self._connect_token = ConnectToken.model_validate_json(
-            resp.text, context={"client": self}
+            resp.text, context={"client": self, "cctx": []}
         )
-        self._connect_token = ConnectToken.model_validate_json(resp.text)
 
         if self.email is None:
             headers = {
@@ -118,15 +108,11 @@ class BitwardenAPIClient:
             )
             self.email = resp.json()["email"]
 
-        import vaultwarden.models.bitwarden
-
-        self._connect_token._master_key = make_master_key(
-            password=self.password,
-            salt=self.email,
-            kdf=vaultwarden.models.bitwarden.Kdf.from_connect_token(
-                self._connect_token
-            ),
+        self._connect_token = ConnectToken.model_validate_json(
+            resp.text, context={"client": self, "cctx": []}
         )
+
+
         return
 
     # login to api
@@ -168,7 +154,7 @@ class BitwardenAPIClient:
         if self._sync is None or force_refresh:
             assert (
                 self._connect_token
-                and self._connect_token.user_key
+                and self._connect_token.PrivateKey
                 and self._connect_token._master_key
             )
             resp = self._api_request("GET", "api/sync")
@@ -176,7 +162,7 @@ class BitwardenAPIClient:
                 resp.text,
                 context={
                     "cctx": [
-                        self._connect_token.orgs_key,
+                        self._connect_token.PrivateKey,
                         self._connect_token._master_key,
                     ]
                 },
@@ -251,7 +237,7 @@ class BitwardenAPIClient:
         else:
             path = "api/ciphers"
             assert self.connect_token is not None
-            key = self.connect_token.user_key
+            key = self.connect_token.Key
             data = item.model_dump(
                 by_alias=True, mode="json", context={"cctx": [key]}
             )

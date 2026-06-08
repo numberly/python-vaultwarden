@@ -53,17 +53,17 @@ class AsymmetricCipher(_Cipher):
         return cls(), b64decode(ct)
 
     @classmethod
-    def encrypt(cls, plainbytes: bytes, key: bytes):
+    def encrypt(cls, plainbytes: bytes, key: RSA.RsaKey):
         assert isinstance(plainbytes, bytes)
-        assert isinstance(key, bytes)
-        cipher = PKCS1_OAEP.new(load_rsa_key(key)).encrypt(plainbytes)
+        assert isinstance(key, RSA.RsaKey)
+        cipher = PKCS1_OAEP.new(key).encrypt(plainbytes)
         b64_ct = b64encode(cipher).decode()
         return cls.ENCODING.format(cipher=cipher, b64_ct=b64_ct)
 
-    def decrypt(self, ct:bytes, key: bytes):
+    def decrypt(self, ct:bytes, key: RSA.RsaKey):
         assert isinstance(ct, bytes)
-        assert isinstance(key, bytes)
-        return PKCS1_OAEP.new(load_rsa_key(key)).decrypt(ct)
+        assert isinstance(key, RSA.RsaKey)
+        return PKCS1_OAEP.new(key).decrypt(ct)
 
 
 class SymmetricCipher(_Cipher):
@@ -298,15 +298,15 @@ def hash_password(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.K
     return base64.b64encode(hashpw), master_key
 
 
-def load_rsa_key(key: bytes) -> RSA.RsaKey:
-    rsakeys = CACHE.setdefault("rsa", {})
-    if not isinstance(key, RSA.RsaKey):
-        try:
-            key = rsakeys[key]
-        except KeyError:
-            rsakeys[key] = RSA.importKey(key)
-            key = rsakeys[key]
-    return key
+# def load_rsa_key(key: bytes) -> RSA.RsaKey:
+#     rsakeys = CACHE.setdefault("rsa", {})
+#     if not isinstance(key, RSA.RsaKey):
+#         try:
+#             key = rsakeys[key]
+#         except KeyError:
+#             rsakeys[key] = RSA.importKey(key)
+#             key = rsakeys[key]
+#     return key
 
 
 def aes_encrypt(plaintext: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:

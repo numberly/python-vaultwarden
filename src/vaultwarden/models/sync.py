@@ -27,8 +27,8 @@ class ConnectToken(PermissiveBaseModel):
     KdfIterations: int = 0
     KdfMemory: int | None = None
     KdfParallelism: int | None = None
-    Key: str
-    PrivateKey: str
+    Key: SecretBytes
+    PrivateKey: SecretRSA
     access_token: str
     refresh_token: str | None = None
     expires_in: int
@@ -49,19 +49,46 @@ class ConnectToken(PermissiveBaseModel):
             now = time.time()
         return (self.expires_in is not None) and (self.expires_in <= now)
 
-    @property
-    def user_key(self) -> bytes:
-        assert self._master_key
-        cipher, ct = SymmetricCipher.parse(self.Key[1:])
-        return cipher.decrypt(ct, self._master_key)
+    @field_validator("Key", mode="wrap")
+    @classmethod
+    def val_field_key(cls, v: str, handler: Any, info: ValidationInfo) -> str:
+        assert info and info.context
+        r = handler(v)
 
-    @property
-    def orgs_key(self) -> bytes:
-        cipher, ct = SymmetricCipher.parse(self.PrivateKey[1:])
-        return cipher.decrypt(ct, self.user_key)
+        cctx = cast("list[bytes]", info.context["cctx"])
+        cctx.append(r)
+        return r
 
+    @model_validator(mode="wrap")
+    @classmethod
+    def val_set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        from vaultwarden.clients.bitwarden import BitwardenAPIClient
+        from vaultwarden.models.bitwarden import Kdf
+        from vaultwarden.utils.crypto import make_master_key
 
-#        return self.PrivateKey
+        assert info and info.context
+
+        client: BitwardenAPIClient = cast(
+            BitwardenAPIClient, info.context["client"]
+        )
+        cctx: list[bytes] = cast("list[bytes]", info.context["cctx"])
+
+        master_key = make_master_key(
+            password=client.password,
+            salt=client.email,
+            kdf=Kdf.model_validate(data),
+        )
+        cctx.append(master_key)
+        v = handler(data)
+        cctx.pop()  # Key
+        cctx.pop()  # master_key
+        v._master_key = master_key
+        return v
 
 
 class ProfileOrganization(PermissiveBaseModel):

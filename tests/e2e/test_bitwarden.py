@@ -4,16 +4,18 @@ import string
 import unittest
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
-from vaultwarden.models.bitwarden import get_organization
+from vaultwarden.models.bitwarden import (
+    get_organization,
+)
 
-env = Path("tests/.env").read_text()
-for line in env.splitlines():
-    k, v = line.strip().split(":", maxsplit=1)
-    v = v.strip().strip('"')
-    if os.environ.get(k) is None:
-        print(f"{k} = {v}")
+if os.environ.get("BITWARDEN_URL", None) is None:
+    from pathlib import Path
+
+    import yaml
+
+    obj = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())
+    for k, v in obj["jobs"]["test"]["steps"][-1]["env"].items():
         os.environ[k] = v
-
 
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)

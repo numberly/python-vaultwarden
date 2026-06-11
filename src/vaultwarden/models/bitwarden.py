@@ -2,6 +2,8 @@ import base64
 import datetime
 from functools import cached_property
 import hashlib
+import io
+from pathlib import Path
 from secrets import token_bytes
 import sys
 from typing import (
@@ -223,6 +225,32 @@ class SecureNoteProperty(BitwardenBaseModel):
     type: int
 
 
+class AttachmentRequest(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    key: SecretCipherKey
+    fileName: SecretString
+    fileSize: int
+    adminRequest: bool | None = None
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def val_set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        return val_set_key(cls, data, handler, info)
+
+    @model_serializer(mode="wrap")
+    def ser_set_key(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> Any:
+        return ser_set_key(self, handler, info)
+
+
 class Attachment(BitwardenBaseModel):
     class Config:
         extra = "forbid"
@@ -343,6 +371,43 @@ class _CipherBase(BitwardenBaseModel):
             "POST",
             f"api/ciphers/{self.Id}/collections",
             json={"collectionIds": dump},
+        )
+
+    def attach(self, path: Path):
+        with path.open("rb") as f:
+            self._attach(path.name, f)
+
+    def _attach(self, name: str, file: io.IOBase):
+        "/api/ciphers/fc246fe5-9177-455b-b318-c00fab407dc8/attachment/v2"
+        key = token_bytes(64)
+        ed = BinarySymmetricCipher.encode(file.read(), key)
+        ar = AttachmentRequest.model_construct(
+            key=key, fileName=name, fileSize=len(ed), adminRequest=True
+        )
+        if self.OrganizationId:
+            cctx = [
+                get_organization(
+                    self._bitwarden_client, self.OrganizationId
+                ).key()
+            ]
+        else:
+            cctx = [self._bitwarden_client._connect_token._masterKey]
+        ard = ar.model_dump(
+            context={"client": self._bitwarden_client, "cctx": cctx}
+        )
+        v = self._bitwarden_client._api_request(
+            "POST", f"api/ciphers/{self.Id}/attachment/v2", json=ard
+        ).json()
+        self._bitwarden_client._api_request(
+            "POST",
+            "api" + v["url"],
+            files={
+                "data": (
+                    ard["fileName"],
+                    io.BytesIO(ed),
+                    "application/octet-stream",
+                )
+            },
         )
 
 

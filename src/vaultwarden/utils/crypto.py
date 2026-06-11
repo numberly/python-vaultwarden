@@ -154,9 +154,9 @@ class BinarySymmetricCipher:
 
     @classmethod
     def _parse(cls, cipher_bytes: bytes) -> tuple[typing.Self, bytes]:
-        iv = cipher_bytes[1:17]
-        mac = cipher_bytes[17:49]
-        ct = cipher_bytes[49:]
+        iv = cipher_bytes[0:16]
+        mac = cipher_bytes[16:48]
+        ct = cipher_bytes[48:]
         return cls(iv, mac), ct
 
     def _decrypt(self, ct: bytes, key: bytes) -> bytes:
@@ -176,7 +176,7 @@ class BinarySymmetricCipher:
             plaintext = plaintext[:-pad_len]
         return plaintext
 
-
+    @classmethod
     def decode(cls, data: bytes, key: bytes) -> bytes:
         assert isinstance(data, bytes)
         assert isinstance(key, bytes)
@@ -199,7 +199,7 @@ class BinarySymmetricCipher:
             ret += mac
         ret += ct
 
-        assert cls.ENCODING % {"typ": typ, "iv": iv, "mac": mac, "ct": ct} == ret
+        assert cls.ENCODING % {b"typ": typ, b"iv": iv, b"mac": mac, b"ct": ct} == ret
         return ret
 
 

@@ -215,6 +215,16 @@ class BitwardenBaseTests:
             )
             bitwarden.create_item(item, None, collections=self.test_colls_ids)
 
+    def test_create_attachment(self):
+        from pathlib import Path
+
+        from vaultwarden.models.bitwarden import Login
+
+        login: Login = next(
+            filter(lambda x: x.attachments, self.test_org_ciphers)
+        )
+        login.attach(Path("/etc/modules"))
+
 
 class BitwardenWithEmailTests(unittest.TestCase, BitwardenBaseTests):
     def setUp(self):

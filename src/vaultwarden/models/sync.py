@@ -69,7 +69,9 @@ class ConnectToken(PermissiveBaseModel):
         from vaultwarden.utils.crypto import make_master_key
 
         assert info and info.context
+
         ctx = cast(CryptoContext, info.context)
+        assert ctx.client.email is not None
 
         master_key = make_master_key(
             password=ctx.client.password,

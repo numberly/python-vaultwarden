@@ -961,12 +961,13 @@ class Organization(BitwardenBaseModel):
 def get_organization(
     bitwarden_client: "BitwardenAPIClient", organisation_id: UUID | str
 ) -> Organization:
+    oid = (
+        UUID(organisation_id)
+        if isinstance(organisation_id, str)
+        else organisation_id
+    )
+
     if bitwarden_client._sync is not None:
-        oid = (
-            UUID(organisation_id)
-            if isinstance(organisation_id, str)
-            else organisation_id
-        )
         for org in bitwarden_client._sync.Profile.Organizations:
             if org.Id == oid:
                 r = Organization.model_construct(

@@ -23,7 +23,7 @@ class BitwardenAPIClient:
     def __init__(
         self,
         url: str,
-        email: str,
+        email: str | None,
         password: str,
         client_id: str,
         client_secret: str,
@@ -33,7 +33,7 @@ class BitwardenAPIClient:
         # if one of the parameters is None, raise an exception
         if not all([url, password, client_id, client_secret, device_id]):
             raise BitwardenError("All parameters are required")
-        self.email = email
+        self.email: str | None = email
         self.password = password
         self.client_id = client_id
         self.client_secret = client_secret
@@ -87,25 +87,21 @@ class BitwardenAPIClient:
         resp = self._http_client.post(
             "identity/connect/token", headers=headers, data=payload
         )
-        self._connect_token = ConnectToken.model_validate_json(
-            resp.text, context=CryptoContext(client=self)
-        )
-
         if self.email is None:
+            access_token = resp.json()["access_token"]
             headers = {
-                "Authorization": f"Bearer {self._connect_token.access_token}",
+                "Authorization": f"Bearer {access_token}",
                 "content-type": "application/json; charset=utf-8",
                 "Accept": "*/*",
             }
-            resp = self._http_client.get(
+            mresp = self._http_client.get(
                 "api/accounts/profile", headers=headers
             )
-            self.email = resp.json()["email"]
+            self.email = mresp.json()["email"]
 
         self._connect_token = ConnectToken.model_validate_json(
-            resp.text, context={"client": self, "cctx": []}
+            resp.text, context=CryptoContext(client=self)
         )
-
 
         return
 

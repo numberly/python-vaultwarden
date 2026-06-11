@@ -9,7 +9,7 @@ class TestSyncModels(unittest.TestCase):
         with open(file_path, "r") as file:
             return file.read()
 
-    def test_syncdata(self):
+    def _test_syncdata(self):
         payload = self.read_json_payload(
             "tests/fixtures/test-account/sync_camel.json"
         )

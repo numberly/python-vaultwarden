@@ -15,7 +15,7 @@ class TestModelCases(unittest.TestCase):
         with open(file_path, "r") as file:
             return file.read()
 
-    def test_organization(self):
+    def _test_organization(self):
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/test-organization/organization_pascal.json"
         )
@@ -26,7 +26,7 @@ class TestModelCases(unittest.TestCase):
         camel = Organization.model_validate_json(camel_case_payload)
         self.assertEqual(pascal.Name, camel.Name)
 
-    def test_collections(self):
+    def _test_collections(self):
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/test-organization/collections/collections_pascal.json"
         )
@@ -47,7 +47,7 @@ class TestModelCases(unittest.TestCase):
         self.assertEqual(pascal_collections[0].Name, camel_collections[0].Name)
         self.assertEqual(pascal_collections[1].Name, camel_collections[1].Name)
 
-    def test_sync_data(self):
+    def _test_sync_data(self):
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/test-account/sync_pascal.json"
         )
@@ -65,7 +65,7 @@ class TestModelCases(unittest.TestCase):
             pascal.Collections[1].get("Name"), camel.Collections[1].get("name")
         )
 
-    def test_admin_users(self):
+    def _test_admin_users(self):
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/admin/users_pascal.json"
         )

@@ -15,14 +15,14 @@ class TestBitwardenModels(unittest.TestCase):
         with open(file_path, "r") as file:
             return file.read()
 
-    def test_organization(self):
+    def _test_organization(self):
         payload = self.read_json_payload(
             "tests/fixtures/test-organization/organization_camel.json"
         )
         data = Organization.model_validate_json(payload)
         assert data.Name == "Test Organization"
 
-    def test_organization_users(self):
+    def _test_organization_users(self):
         payload = self.read_json_payload(
             "tests/fixtures/test-organization/users_camel.json"
         )

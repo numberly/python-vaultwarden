@@ -5,6 +5,7 @@ from uuid import UUID
 from httpx import Client, Response
 
 from vaultwarden.models.bitwarden import CipherDetail, RegisterData
+from vaultwarden.models.crypto import CryptoContext
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
 from vaultwarden.utils.logger import log_raise_for_status
@@ -87,7 +88,7 @@ class BitwardenAPIClient:
             "identity/connect/token", headers=headers, data=payload
         )
         self._connect_token = ConnectToken.model_validate_json(
-            resp.text, context={"client": self, "cctx": []}
+            resp.text, context=CryptoContext(client=self)
         )
 
         if self.email is None:
@@ -160,11 +161,13 @@ class BitwardenAPIClient:
                 "domains": {},
             }
             # populate self._sync.Profile
-            self._sync = SyncData.model_validate(v, context={"client": self})
+            self._sync = SyncData.model_validate(
+                v, context=CryptoContext(client=self)
+            )
             # uses self._sync.Profile
             self._sync = SyncData.model_validate(
                 data,
-                context={"client": self},
+                context=CryptoContext(client=self),
             )
         return self._sync
 
@@ -194,7 +197,7 @@ class BitwardenAPIClient:
             by_alias=True,
             exclude_none=True,
             exclude_unset=True,
-            context={"client": self},
+            context=CryptoContext(client=self),
         )
         resp = self._api_request("POST", "api/accounts/register", json=data)
         return resp.json()
@@ -215,7 +218,9 @@ class BitwardenAPIClient:
             data = {
                 "type": item.Type,
                 "cipher": item.model_dump(
-                    by_alias=True, mode="json", context={"cctx": [key]}
+                    by_alias=True,
+                    mode="json",
+                    context=CryptoContext(client=self, stack=[key]),
                 ),
                 "collectionIds": [str(i.Id) for i in collections],
             }
@@ -224,10 +229,12 @@ class BitwardenAPIClient:
             assert self.connect_token is not None
             key = self.connect_token.Key
             data = item.model_dump(
-                by_alias=True, mode="json", context={"cctx": [key]}
+                by_alias=True,
+                mode="json",
+                context=CryptoContext(client=self, stack=[key]),
             )
 
         resp = self._api_request("POST", path, json=data)
         return CipherDetail.validate_json(
-            resp.text, context={"client": self, "cctx": []}
+            resp.text, context=CryptoContext(client=self)
         )

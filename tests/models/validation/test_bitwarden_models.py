@@ -1,4 +1,5 @@
 import unittest
+from uuid import UUID
 
 from pydantic import TypeAdapter
 from vaultwarden.models.bitwarden import (
@@ -7,6 +8,7 @@ from vaultwarden.models.bitwarden import (
     OrganizationUserDetails,
     ResplistBitwarden,
 )
+from vaultwarden.models.crypto import CryptoContext
 
 
 class TestBitwardenModels(unittest.TestCase):
@@ -30,7 +32,10 @@ class TestBitwardenModels(unittest.TestCase):
             ResplistBitwarden[OrganizationUserDetails]
             .model_validate_json(
                 payload,
-                context={"parent_id": "cda840d2-1de0-4f31-bd49-b30dacd7e8b0"},
+                context=CryptoContext(
+                    client=None,
+                    parent_id=UUID("cda840d2-1de0-4f31-bd49-b30dacd7e8b0"),
+                ),
             )
             .model_validate_json(payload)
         )
@@ -47,11 +52,17 @@ class TestBitwardenModels(unittest.TestCase):
         )
         collection1 = TypeAdapter(list[CollectionUser]).validate_json(
             payload1,
-            context={"parent_id": "9ed17918-31f6-4ac5-ac82-c11541cd8a7c"},
+            context=CryptoContext(
+                client=None,
+                parent_id=UUID("9ed17918-31f6-4ac5-ac82-c11541cd8a7c"),
+            ),
         )
         collection2 = TypeAdapter(list[CollectionUser]).validate_json(
             payload2,
-            context={"parent_id": "3c73f14f-5a01-4016-98bb-9605146a1a49"},
+            context=CryptoContext(
+                client=None,
+                parent_id=UUID("3c73f14f-5a01-4016-98bb-9605146a1a49"),
+            ),
         )
 
         assert len(collection1) == 0

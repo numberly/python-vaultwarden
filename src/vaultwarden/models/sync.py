@@ -1,6 +1,5 @@
 import sys
 import time
-import typing
 from typing import Any, cast
 from uuid import UUID
 
@@ -16,6 +15,7 @@ from pydantic import (
 
 from vaultwarden.models.bitwarden import Login, val_set_key
 from vaultwarden.models.crypto import (
+    CryptoContext,
     SecretKey,
     SecretOrganizationKey,
     SecretRSA,
@@ -27,10 +27,6 @@ if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self
-
-
-if typing.TYPE_CHECKING:
-    from vaultwarden.clients.bitwarden import BitwardenAPIClient
 
 
 class ConnectToken(PermissiveBaseModel):
@@ -68,25 +64,21 @@ class ConnectToken(PermissiveBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        from vaultwarden.clients.bitwarden import BitwardenAPIClient
         from vaultwarden.models.bitwarden import Kdf
+        from vaultwarden.models.crypto import CryptoContext
         from vaultwarden.utils.crypto import make_master_key
 
         assert info and info.context
-
-        client: BitwardenAPIClient = cast(
-            BitwardenAPIClient, info.context["client"]
-        )
-        cctx: list[bytes] = cast("list[bytes]", info.context["cctx"])
+        ctx = cast(CryptoContext, info.context)
 
         master_key = make_master_key(
-            password=client.password,
-            salt=client.email,
+            password=ctx.client.password,
+            salt=ctx.client.email,
             kdf=Kdf.model_validate(data),
         )
-        cctx.append(master_key)
+        ctx.push(master_key)
         v = val_set_key(cls, data, handler, info)
-        cctx.pop()  # master_key
+        ctx.pop()  # master_key
         v._master_key = master_key
         return v
 
@@ -146,11 +138,10 @@ class UserProfile(PermissiveBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        assert info.context and isinstance(info.context, dict)
-        cctx: list[bytes] = cast(list["bytes"], info.context["cctx"])
-        cctx.append(info.data["PrivateKey"])
+        ctx: CryptoContext = cast(CryptoContext, info.context)
+        ctx.push(info.data["PrivateKey"])
         r = handler(v)
-        cctx.pop()
+        ctx.pop()
         return r
 
     @model_validator(mode="wrap")
@@ -187,15 +178,12 @@ class SyncData(PermissiveBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        assert info.context and isinstance(info.context, dict)
-        cctx: list[bytes]
-        if (v := info.context.get("cctx")) is None:
-            cctx = info.context["cctx"] = []
-        else:
-            cctx = cast(list[bytes], v)
-        client: "BitwardenAPIClient" = info.context.get("client")
-        assert client._connect_token and client._connect_token._master_key
-        cctx.append(client._connect_token._master_key)
+        ctx: CryptoContext = cast(CryptoContext, info.context)
+
+        assert (
+            ctx.client._connect_token and ctx.client._connect_token._master_key
+        )
+        ctx.push(ctx.client._connect_token._master_key)
         r = handler(data)
-        cctx.pop()
+        ctx.pop()
         return r

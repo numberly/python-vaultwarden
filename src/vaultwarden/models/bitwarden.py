@@ -38,7 +38,12 @@ from pydantic_core.core_schema import (
     ValidationInfo,
 )
 
-from vaultwarden.models.crypto import SecretBytes, SecretKey, SecretString
+from vaultwarden.models.crypto import (
+    CryptoContext,
+    SecretBytes,
+    SecretKey,
+    SecretString,
+)
 from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
@@ -71,17 +76,16 @@ def val_set_key(
     info: ValidationInfo,
 ) -> Any:
     key: str
-    cctx: list[bytes]
+    ctx: CryptoContext = cast(CryptoContext, info.context)
     if (key := (data.get("key") or data.get("Key"))) is not None:
-        context = cast("dict", info.context)
-        cctx = cast("list[bytes]", context.get("cctx"))
-        v = SymmetricCipher.decode(key, cctx[-1])
-        cctx.append(v)
+        assert isinstance(ctx.stack[-1], bytes)
+        v = SymmetricCipher.decode(key, ctx.stack[-1])
+        ctx.push(v)
 
     r = handler(data)
 
     if key is not None:
-        cctx.pop()
+        ctx.pop()
 
     return r
 
@@ -90,16 +94,14 @@ def ser_set_key(
     slf: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
 ) -> Any:
     key: bytes | None
-    cctx: list[bytes]
     if (key := slf.key) is not None:
-        context = cast("dict", info.context)
-        cctx = cast("list[bytes]", context.get("cctx"))
-        cctx.append(key)
+        ctx: CryptoContext = cast(CryptoContext, info.context)
+        ctx.push(key)
 
     v = handler(slf)
 
     if key is not None:
-        cctx.pop()
+        ctx.pop()
 
     return v
 
@@ -119,9 +121,9 @@ class BitwardenBaseModel(PermissiveBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        assert info.context
+        ctx: CryptoContext = cast(CryptoContext, info.context)
         v = handler(data)
-        v._bitwarden_client = info.context.get("client")
+        v._bitwarden_client = ctx.client
         return v
 
     @property
@@ -291,36 +293,28 @@ class _CipherBase(BitwardenBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        assert isinstance(info.context, dict)
+        assert isinstance(info.context, CryptoContext)
 
-        cctx: list[bytes]
+        ctx: CryptoContext = cast(CryptoContext, info.context)
 
-        if (v := info.context.get("cctx", None)) is None:
-            cctx = info.context["cctx"] = []
-        else:
-            cctx = cast(list[bytes], v)
-
-        client: "BitwardenAPIClient" = cast(
-            "BitwardenAPIClient", info.context.get("client")
-        )
-        assert client._sync and client._sync.Profile
+        assert ctx.client._sync and ctx.client._sync.Profile
 
         if (o := data.get("organizationId")) is not None:
             oid = UUID(o)
             org: typing.Optional["ProfileOrganization"] = None
-            for org in client._sync.Profile.Organizations:
+            for org in ctx.client._sync.Profile.Organizations:
                 if oid == org.Id:
                     assert org.Key
-                    cctx.append(org.Key)
+                    ctx.push(org.Key)
                     break
             else:
                 raise ValueError(f"No organization found {oid}")
         else:
-            assert client._connect_token
-            cctx.append(client._connect_token.Key)
+            assert ctx.client._connect_token
+            ctx.push(ctx.client._connect_token.Key)
         r = val_set_key(cls, data, handler, info)
 
-        cctx.pop()
+        ctx.pop()
 
         return r
 
@@ -334,7 +328,8 @@ class _CipherBase(BitwardenBaseModel):
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
         if v is None and info.context is not None:
-            return info.context.get("parent_id")
+            ctx: CryptoContext = cast(CryptoContext, info.context)
+            return ctx.parent_id
         return v
 
     def add_collections(self, collections: list[UUID]):
@@ -385,15 +380,15 @@ class _CipherBase(BitwardenBaseModel):
             key=key, fileName=name, fileSize=len(ed), adminRequest=True
         )
         if self.OrganizationId:
-            cctx = [
+            stack = [
                 get_organization(
                     self._bitwarden_client, self.OrganizationId
                 ).key()
             ]
         else:
-            cctx = [self._bitwarden_client._connect_token._masterKey]
+            stack = [self._bitwarden_client._connect_token._masterKey]
         ard = ar.model_dump(
-            context={"client": self._bitwarden_client, "cctx": cctx}
+            context=CryptoContext(client=self._bitwarden_client, stack=stack)
         )
         v = self._bitwarden_client._api_request(
             "POST", f"api/ciphers/{self.Id}/attachment/v2", json=ard
@@ -480,7 +475,8 @@ class CollectionUser(CollectionAccess):
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
         if v is None and info.context is not None:
-            return info.context.get("parent_id")
+            ctx: CryptoContext = cast(CryptoContext, info.context)
+            return ctx.parent_id
         return v
 
 
@@ -496,7 +492,8 @@ class UserCollection(CollectionAccess):
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
         if v is None and info.context is not None:
-            return info.context.get("parent_id")
+            ctx: CryptoContext = cast(CryptoContext, info.context)
+            return ctx.parent_id
         return v
 
 
@@ -510,7 +507,8 @@ class OrganizationCollection(BitwardenBaseModel):
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
         if v is None and info.context is not None:
-            return info.context.get("parent_id")
+            ctx: CryptoContext = cast(CryptoContext, info.context)
+            return ctx.parent_id
         return v
 
     def users(self) -> list[CollectionUser]:
@@ -521,7 +519,7 @@ class OrganizationCollection(BitwardenBaseModel):
         )
         return TypeAdapter(list[CollectionUser]).validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.api_client},
+            context=CryptoContext(client=self.api_client, parent_id=self.Id),
         )
 
     def set_users(
@@ -585,7 +583,8 @@ class OrganizationUserDetails(BitwardenBaseModel):
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
         if v is None and info.context is not None:
-            return info.context.get("parent_id")
+            ctx: CryptoContext = cast(CryptoContext, info.context)
+            return ctx.parent_id
         return v
 
     def add_collections(self, collections: list[UUID]):
@@ -721,7 +720,8 @@ class Organization(BitwardenBaseModel):
     @classmethod
     def set_id(cls, v, info: FieldValidationInfo):
         if v is None and info.context is not None:
-            return info.context.get("parent_id")
+            ctx: CryptoContext = cast(CryptoContext, info.context)
+            return ctx.parent_id
         return v
 
     def rename(self, new_name: str):
@@ -807,10 +807,9 @@ class Organization(BitwardenBaseModel):
             ResplistBitwarden[OrganizationUserDetails]
             .model_validate_json(
                 resp.text,
-                context={
-                    "parent_id": self.Id,
-                    "client": self.api_client,
-                },
+                context=CryptoContext(
+                    client=self.api_client, parent_id=self.Id
+                ),
             )
             .Data
         )
@@ -843,7 +842,7 @@ class Organization(BitwardenBaseModel):
         )
         return OrganizationUserDetails.model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.api_client},
+            context=CryptoContext(client=self.api_client, parent_id=self.Id),
         )
 
     def user_search(
@@ -863,11 +862,9 @@ class Organization(BitwardenBaseModel):
         )
         res = ResplistBitwarden[OrganizationCollection].model_validate_json(
             resp.text,
-            context={
-                "parent_id": self.Id,
-                "client": self.api_client,
-                "cctx": [self.key()],
-            },
+            context=CryptoContext(
+                client=self.api_client, parent_id=self.Id, stack=[self.key()]
+            ),
         )
         return res.Data
 
@@ -892,11 +889,9 @@ class Organization(BitwardenBaseModel):
         )
         res = OrganizationCollection.model_validate_json(
             resp.text,
-            context={
-                "parent_id": self.Id,
-                "client": self.api_client,
-                "cctx": [org_key],
-            },
+            context=CryptoContext(
+                client=self.api_client, parent_id=self.Id, stack=[org_key]
+            ),
         )
         if self._collections is not None:
             self._collections.append(res)
@@ -929,7 +924,7 @@ class Organization(BitwardenBaseModel):
         )
         res = ResplistBitwarden[CipherDetails].model_validate_json(
             resp.text,
-            context={"parent_id": self.Id, "client": self.api_client},
+            context=CryptoContext(client=self.api_client, parent_id=self.Id),
         )
         return res.Data
 
@@ -985,7 +980,7 @@ def get_organization(
     )
     return Organization.model_validate_json(
         resp.text,
-        context={"client": bitwarden_client, "parent_id": organisation_id},
+        context=CryptoContext(client=bitwarden_client, parent_id=oid),
     )
 
 

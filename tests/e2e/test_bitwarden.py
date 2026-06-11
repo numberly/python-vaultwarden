@@ -165,7 +165,7 @@ class BitwardenBaseTests:
         rnd = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
         ).lower()
-        bitwarden.create_user(
+        self.bitwarden.create_user(
             f"test+{rnd}@examle.org",
             gen_password(),
             "test user",
@@ -192,7 +192,7 @@ class BitwardenBaseTests:
                 data=data,
                 key=key,
             )
-            bitwarden.create_item(
+            self.bitwarden.create_item(
                 item, self.organization, collections=self.test_colls_ids
             )
 
@@ -216,7 +216,9 @@ class BitwardenBaseTests:
                 data=data,
                 key=key,
             )
-            bitwarden.create_item(item, None, collections=self.test_colls_ids)
+            self.bitwarden.create_item(
+                item, None, collections=self.test_colls_ids
+            )
 
     def _test_create_attachment(self):
         from pathlib import Path
@@ -226,10 +228,10 @@ class BitwardenBaseTests:
         login: Login = next(
             filter(lambda x: x.attachments, self.test_org_ciphers)
         )
-        login.attach(Path("/etc/modules"))
+        login.attach(Path(__file__))
 
-    def _test_sync(self):
-        for v in bitwarden._sync.Ciphers:
+    def test_sync(self):
+        for v in self.bitwarden._sync.Ciphers:
             print(f"{v.Name} - {v.OrganizationId}")
 
 

@@ -154,21 +154,19 @@ class BitwardenBaseTests:
         return
 
     def test_create_user(self):
-        from vaultwarden.models.bitwarden import Kdf, KdfType
-
-        argon2id = Kdf.model_construct(
-            Kdf=KdfType.Argon2id,
-            KdfMemory=32,
-            KdfIterations=6,
-            KdfParallelism=4,
-        )
         import random
+
+        from vaultwarden.models.bitwarden import Kdf
+        from vaultwarden.utils.crypto import gen_password
 
         rnd = "".join(
             random.choices(string.ascii_letters + string.digits, k=10)
-        )
+        ).lower()
         bitwarden.create_user(
-            f"test+{rnd}@examle.org", "test", "test user", kdf=argon2id
+            f"test+{rnd}@examle.org",
+            gen_password(),
+            "test user",
+            kdf=Kdf.argon2id(),
         )
 
     def test_create_org_login(self):

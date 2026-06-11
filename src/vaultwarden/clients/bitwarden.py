@@ -4,6 +4,7 @@ from uuid import UUID
 
 from httpx import Client, Response
 
+from vaultwarden.models.bitwarden import CipherDetail, RegisterData
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
 from vaultwarden.utils.logger import log_raise_for_status
@@ -143,9 +144,12 @@ class BitwardenAPIClient:
             raise BitwardenError("Fail to connect")
         headers = {
             "Authorization": f"Bearer {self.connect_token.access_token}",
-            "content-type": "application/json; charset=utf-8",
             "Accept": "*/*",
         }
+
+        if kwargs.get("json") is not None:
+            headers["content-type"] = "application/json; charset=utf-8"
+
         return self._http_client.request(
             method, path, headers=headers, **kwargs
         )
@@ -182,37 +186,23 @@ class BitwardenAPIClient:
         name,
         kdf: "Kdf",
     ):
-        from base64 import b64encode
-        import json
+        assert email == email.lower(), "email is not lowercase"
+        assert len(password) >= 8, "password is too short (< 8 characters)"
 
-        from vaultwarden.models.bitwarden import KeysData, RegisterData
-        from vaultwarden.utils import crypto
-
-        hashedpw, master_key = crypto.hash_password(password, email, kdf=kdf)
-
-        ekey, key = crypto.make_sym_key(master_key)
-        easymk, pub_asymk, priv_asymk = crypto.make_asym_key(key)
-        bpub_asymk = b64encode(pub_asymk).decode()
-
-        payload = RegisterData.model_validate(
-            {
-                "email": email,
-                **kdf.model_dump(exclude_unset=True, exclude_none=True),
-                "masterPasswordHint": "x",
-                "masterPasswordHash": hashedpw.decode(),
-                "name": name,
-                "key": ekey,
-                "keys": KeysData.model_validate(
-                    {"encryptedPrivateKey": easymk, "publicKey": bpub_asymk},
-                    context={"client": self},
-                ),
-            },
+        rd = RegisterData.model_construct(
+            email=email,
+            password=password,
+            name=name,
+            **kdf.model_dump(by_alias=True),
+        )
+        data = rd.model_dump(
+            by_alias=True,
+            exclude_none=True,
+            exclude_unset=True,
             context={"client": self},
         )
-        data = payload.model_dump(exclude_none=True, exclude_unset=True)
-        print(json.dumps(data, indent=2))
         resp = self._api_request("POST", "api/accounts/register", json=data)
-        print(resp.text)
+        return resp.json()
 
     def create_item(
         self,
@@ -243,11 +233,4 @@ class BitwardenAPIClient:
             )
 
         resp = self._api_request("POST", path, json=data)
-
-        import json
-
-        print(json.dumps(resp.json(), indent=2))
-
-        from vaultwarden.models.bitwarden import CipherDetail
-
         return CipherDetail.validate_json(resp.text, context={"cctx": [key]})

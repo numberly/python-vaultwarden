@@ -245,7 +245,7 @@ class DecryptError(ValueError):
     """."""
 
 
-def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"):
+def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf") -> bytes:
     import vaultwarden.models.bitwarden
 
     assert isinstance(salt, str)
@@ -276,14 +276,8 @@ def make_master_key(password: str, salt: str, kdf: "vaultwarden.models.bitwarden
                 type=argon2.Type.ID,
             )
             return v
-
-def hash_password(password: str, salt: str, kdf: "vaultwarden.models.bitwarden.Kdf"): # FIXME UNUSED
-    """base64-encode a wrapped, stretched password+salt(email) for signup/login"""
-    assert isinstance(password, str)
-    assert isinstance(salt, str)
-    master_key = make_master_key(password, salt, kdf)
-    hashpw = hashlib.pbkdf2_hmac("sha256", master_key, password.encode(), 1)
-    return base64.b64encode(hashpw), master_key
+        case _:
+            raise ValueError(f"unsupported kdf {kdf}")
 
 
 def aes_encrypt(plaintext: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:
@@ -302,27 +296,13 @@ def aes_encrypt(plaintext: bytes, key: bytes) -> tuple[bytes, bytes, bytes]:
     return iv, ct, cmac.digest()
 
 
-def strech_key(key: bytes) -> bytes:
+def stretch_key(key: bytes) -> bytes:
     stretched_key = key
     if len(stretched_key) < 64:
         stretched_key = hkdf_expand(key, b"enc", 32, sha256) + hkdf_expand(
             key, b"mac", 32, sha256
         )
     return stretched_key
-
-def make_sym_key(master_key: bytes) -> tuple[str, bytes]: # FIXME UNUSED
-    stretched_key = strech_key(master_key)
-    plaintext = token_bytes(64)
-    return SymmetricCipher.encode(plaintext, stretched_key), plaintext
-
-
-def make_asym_key(key:bytes, stretch=True) -> tuple[str, bytes, bytes]:  # FIXME UNUSED
-    if stretch:
-        key = strech_key(key)
-    asym_key = RSA.generate(2048)
-    public_key = asym_key.publickey().exportKey("DER")
-    private_key = asym_key.exportKey("DER", pkcs=8)
-    return SymmetricCipher.encode(private_key, key), public_key, private_key
 
 
 def gen_password(length=32, alphabet=None) -> str:  # FIXME UNUSED

@@ -1,4 +1,8 @@
+import base64
 import datetime
+from functools import cached_property
+import hashlib
+from secrets import token_bytes
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -12,12 +16,14 @@ from typing import (
 )
 from uuid import UUID
 
+from Crypto.PublicKey import RSA
 from pydantic import (
     AliasChoices,
     Field,
     ModelWrapValidatorHandler,
     PrivateAttr,
     TypeAdapter,
+    computed_field,
     field_validator,
     model_serializer,
     model_validator,
@@ -34,10 +40,14 @@ from vaultwarden.models.crypto import SecretCipherKey, SecretString
 from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
-from vaultwarden.utils.crypto import SymmetricCipher
+from vaultwarden.utils.crypto import (
+    BinarySymmetricCipher,
+    SymmetricCipher,
+    make_master_key,
+    stretch_key,
+)
 
 if TYPE_CHECKING:
-    import vaultwarden.clients.bitwarden
     from vaultwarden.clients.bitwarden import BitwardenAPIClient
 
 if sys.version_info < (3, 12):
@@ -49,6 +59,46 @@ else:
 # Pydantic models for Bitwarden data structures
 
 T = TypeVar("T", bound="BitwardenBaseModel")
+
+
+def val_set_key(
+    cls,
+    data: Any,
+    handler: ModelWrapValidatorHandler[Any],
+    info: ValidationInfo,
+) -> Any:
+    key: str
+    cctx: list[bytes]
+    if (key := data.get("key")) is not None:
+        context = cast("dict", info.context)
+        cctx = cast("list[bytes]", context.get("cctx"))
+        v = SymmetricCipher.decode(key, cctx[-1])
+        cctx.append(v)
+
+    r = handler(data)
+
+    if key is not None:
+        cctx.pop()
+
+    return r
+
+
+def ser_set_key(
+    slf: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+) -> Any:
+    key: bytes | None
+    cctx: list[bytes]
+    if (key := slf.key) is not None:
+        context = cast("dict", info.context)
+        cctx = cast("list[bytes]", context.get("cctx"))
+        cctx.append(key)
+
+    v = handler(slf)
+
+    if key is not None:
+        cctx.pop()
+
+    return v
 
 
 class ResplistBitwarden(PermissiveBaseModel, Generic[T]):
@@ -179,13 +229,31 @@ class Attachment(BitwardenBaseModel):
 
     fileName: SecretString | None = None
     id: str
-    key: str | None = (
-        None  # Annotated[str, WrapValidator(decodeBytes)]|None = None
-    )
+    key: SecretCipherKey | None = None
     object: str
     size: int
     sizeName: str
     url: str
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def val_set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        return val_set_key(cls, data, handler, info)
+
+    @model_serializer(mode="wrap")
+    def ser_set_key(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> Any:
+        return ser_set_key(self, handler, info)
+
+    def download(self):
+        v = self._bitwarden_client._http_client.get(self.url)
+        return BinarySymmetricCipher.decode(v.content, self.key)
 
 
 class _CipherBase(BitwardenBaseModel):
@@ -226,38 +294,13 @@ class _CipherBase(BitwardenBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        key: str
-        cctx: list[bytes]
-        if (key := data.get("key")) is not None:
-            context = cast("dict", info.context)
-            cctx = cast("list[bytes]", context.get("cctx"))
-            v = SymmetricCipher.decode(key, cctx[-1])
-            cctx.append(v)
-
-        r = handler(data)
-
-        if key is not None:
-            cctx.pop()
-
-        return r
+        return val_set_key(cls, data, handler, info)
 
     @model_serializer(mode="wrap")
     def ser_set_key(
         self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> Any:
-        key: bytes | None
-        cctx: list[bytes]
-        if (key := self.key) is not None:
-            context = cast("dict", info.context)
-            cctx = cast("list[bytes]", context.get("cctx"))
-            cctx.append(key)
-
-        v = handler(self)
-
-        if key is not None:
-            cctx.pop()
-
-        return v
+        return ser_set_key(self, handler, info)
 
     @field_validator("OrganizationId")
     @classmethod
@@ -879,14 +922,12 @@ class Kdf(PermissiveBaseModel):
     KdfParallelism: int | None = None
 
     @classmethod
-    def from_connect_token(
-        cls, token: "vaultwarden.clients.bitwarden.ConnectToken"
-    ):
+    def argon2id(cls):
         return cls.model_construct(
-            Kdf=token.Kdf,
-            KdfIterations=token.KdfIterations,
-            KdfMemory=token.KdfMemory,
-            KdfParallelism=token.KdfParallelism,
+            Kdf=KdfType.Argon2id,
+            KdfMemory=32,
+            KdfIterations=6,
+            KdfParallelism=4,
         )
 
 
@@ -896,17 +937,75 @@ class KeysData(BitwardenBaseModel):
 
 
 class RegisterData(BitwardenBaseModel):
+    """
+    c.f. https://bitwarden.com/help/bitwarden-security-white-paper/
+    """
+
+    class Config:
+        extra = "forbid"
+        arbitrary_types_allowed = True
+
     email: str
+    password: str = Field(exclude=True)
+
     name: str
-    Kdf: KdfType
-    key: str
+    Kdf: int
+    #    key: str
 
-    masterPasswordHash: str
+    KdfIterations: int | None = None
+    KdfMemory: int | None = None
+    KdfParallelism: int | None = None
 
-    kdfIterations: int | None = None
-    kdfMemory: int | None = None
-    kdfParallelism: int | None = None
-
-    keys: KeysData | None = None
+    #    keys: KeysData | None = None
 
     masterPasswordHint: str | None = None
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def masterPasswordHash(self) -> str:  # noqa: N802
+        v = hashlib.pbkdf2_hmac(
+            "sha256", self._masterKey, self.password.encode(), 1
+        )
+        return base64.b64encode(v).decode()
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def key(self) -> str:
+        return SymmetricCipher.encode(self._rawKey, self._masterKey)
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def keys(self) -> KeysData:
+        return KeysData.model_construct(
+            encryptedPrivateKey=SymmetricCipher.encode(
+                self._rawKeys.exportKey("DER", pkcs=8), self._rawKey
+            ),
+            publicKey=base64.b64encode(
+                self._rawKeys.publickey().exportKey("DER")
+            ).decode(),
+        )
+
+    @cached_property
+    def _masterKey(self) -> bytes:  # noqa: N802
+        return make_master_key(
+            self.password,
+            self.email,
+            Kdf.model_construct(
+                Kdf=self.Kdf,
+                KdfIterations=self.KdfIterations,
+                KdfMemory=self.KdfMemory,
+                KdfParallelism=self.KdfParallelism,
+            ),
+        )
+
+    @cached_property
+    def _stretchedKey(self) -> bytes:  # noqa: N802
+        return stretch_key(self._masterKey)
+
+    @cached_property
+    def _rawKey(self) -> bytes:  # noqa: N802
+        return token_bytes(64)
+
+    @cached_property
+    def _rawKeys(self) -> RSA.RsaKey:  # noqa: N802
+        return RSA.generate(2048)

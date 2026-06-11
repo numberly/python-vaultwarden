@@ -8,6 +8,7 @@ import hashlib
 import re
 import secrets
 import string
+import sys
 from base64 import b64decode, b64encode
 from enum import IntEnum
 from hashlib import pbkdf2_hmac, sha256
@@ -20,8 +21,16 @@ from Crypto.PublicKey import RSA
 from hkdf import hkdf_expand
 from typing_extensions import override
 
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
+
+
 if typing.TYPE_CHECKING:
     import vaultwarden.models.bitwarden
+
+
 
 class CIPHERS(IntEnum):
     null = 0
@@ -53,7 +62,7 @@ class AsymmetricCipher(_Cipher):
     TYPE = CIPHERS.asym
     ENCODING = "{typ}.{b64_ct}"
     @classmethod
-    def _parse(cls, ct:str) -> tuple[typing.Self, bytes]:
+    def _parse(cls, ct:str) -> tuple[Self, bytes]:
         return cls(), b64decode(ct)
 
     def _decrypt(self, ct:bytes, key: RSA.RsaKey) -> bytes:
@@ -83,7 +92,7 @@ class SymmetricCipher(_Cipher):
         self._mac = mac
 
     @classmethod
-    def _parse(cls, ct: str) -> tuple[typing.Self, bytes]:
+    def _parse(cls, ct: str) -> tuple[Self, bytes]:
         iv, ct, mac = ct.split("|", 3)
         return cls(b64decode(iv), b64decode(mac)[0:32]), b64decode(ct)
 
@@ -153,7 +162,7 @@ class BinarySymmetricCipher:
         self._mac = mac
 
     @classmethod
-    def _parse(cls, cipher_bytes: bytes) -> tuple[typing.Self, bytes]:
+    def _parse(cls, cipher_bytes: bytes) -> tuple[Self, bytes]:
         iv = cipher_bytes[0:16]
         mac = cipher_bytes[16:48]
         ct = cipher_bytes[48:]

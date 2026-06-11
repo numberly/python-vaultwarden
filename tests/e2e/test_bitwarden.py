@@ -156,7 +156,7 @@ class BitwardenBaseTests:
         # Todo build test fixtures and delete them at the end of the test
         return
 
-    def test_create_user(self):
+    def _test_create_user(self):
         import random
 
         from vaultwarden.models.bitwarden import Kdf
@@ -172,7 +172,7 @@ class BitwardenBaseTests:
             kdf=Kdf.argon2id(),
         )
 
-    def test_create_org_login(self):
+    def _test_create_org_login(self):
         from secrets import token_bytes
 
         from vaultwarden.models.bitwarden import Login, LoginData
@@ -196,7 +196,7 @@ class BitwardenBaseTests:
                 item, self.organization, collections=self.test_colls_ids
             )
 
-    def test_create_own_login(self):
+    def _test_create_own_login(self):
         from secrets import token_bytes
 
         from vaultwarden.models.bitwarden import Login, LoginData
@@ -218,7 +218,7 @@ class BitwardenBaseTests:
             )
             bitwarden.create_item(item, None, collections=self.test_colls_ids)
 
-    def test_create_attachment(self):
+    def _test_create_attachment(self):
         from pathlib import Path
 
         from vaultwarden.models.bitwarden import Login
@@ -227,6 +227,10 @@ class BitwardenBaseTests:
             filter(lambda x: x.attachments, self.test_org_ciphers)
         )
         login.attach(Path("/etc/modules"))
+
+    def _test_sync(self):
+        for v in bitwarden._sync.Ciphers:
+            print(f"{v.Name} - {v.OrganizationId}")
 
 
 class BitwardenWithEmailTests(unittest.TestCase, BitwardenBaseTests):

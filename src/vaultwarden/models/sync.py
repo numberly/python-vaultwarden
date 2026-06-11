@@ -1,6 +1,7 @@
+import sys
 import time
 import typing
-from typing import Any, Self, cast
+from typing import Any, cast
 from uuid import UUID
 
 from pydantic import (
@@ -21,6 +22,12 @@ from vaultwarden.models.crypto import (
 )
 from vaultwarden.models.enum import KdfType, VaultwardenUserStatus
 from vaultwarden.models.permissive_model import PermissiveBaseModel
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
+
 
 if typing.TYPE_CHECKING:
     from vaultwarden.clients.bitwarden import BitwardenAPIClient

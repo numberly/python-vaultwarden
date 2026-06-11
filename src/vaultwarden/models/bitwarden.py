@@ -37,7 +37,6 @@ from pydantic_core.core_schema import (
     SerializerFunctionWrapHandler,
     ValidationInfo,
 )
-from typing_extensions import Self
 
 from vaultwarden.models.crypto import SecretBytes, SecretKey, SecretString
 from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
@@ -54,7 +53,7 @@ if TYPE_CHECKING:
     from vaultwarden.clients.bitwarden import BitwardenAPIClient
     from vaultwarden.models.sync import ProfileOrganization
 
-if sys.version_info < (3, 12):
+if sys.version_info < (3, 11):
     from typing_extensions import Self
 else:
     from typing import Self

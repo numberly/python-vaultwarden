@@ -23,6 +23,7 @@ client_id = os.environ.get("BITWARDEN_CLIENT_ID", None)
 client_secret = os.environ.get("BITWARDEN_CLIENT_SECRET", None)
 device_id = os.environ.get("BITWARDEN_DEVICE_ID", None)
 
+
 # Get test organization id from environment variables
 test_organization = os.environ.get("BITWARDEN_TEST_ORGANIZATION", None)
 

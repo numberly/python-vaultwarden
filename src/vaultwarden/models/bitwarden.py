@@ -6,6 +6,7 @@ import io
 from pathlib import Path
 from secrets import token_bytes
 import sys
+import typing
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -38,7 +39,7 @@ from pydantic_core.core_schema import (
 )
 from typing_extensions import Self
 
-from vaultwarden.models.crypto import SecretCipherKey, SecretString
+from vaultwarden.models.crypto import SecretBytes, SecretKey, SecretString
 from vaultwarden.models.enum import CipherType, KdfType, OrganizationUserType
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.permissive_model import PermissiveBaseModel
@@ -51,6 +52,7 @@ from vaultwarden.utils.crypto import (
 
 if TYPE_CHECKING:
     from vaultwarden.clients.bitwarden import BitwardenAPIClient
+    from vaultwarden.models.sync import ProfileOrganization
 
 if sys.version_info < (3, 12):
     from typing_extensions import Self
@@ -71,7 +73,7 @@ def val_set_key(
 ) -> Any:
     key: str
     cctx: list[bytes]
-    if (key := data.get("key")) is not None:
+    if (key := (data.get("key") or data.get("Key"))) is not None:
         context = cast("dict", info.context)
         cctx = cast("list[bytes]", context.get("cctx"))
         v = SymmetricCipher.decode(key, cctx[-1])
@@ -229,55 +231,23 @@ class AttachmentRequest(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    key: SecretCipherKey
+    key: SecretBytes
     fileName: SecretString
     fileSize: int
     adminRequest: bool | None = None
-
-    @model_validator(mode="wrap")
-    @classmethod
-    def val_set_key(
-        cls,
-        data: Any,
-        handler: ModelWrapValidatorHandler[Self],
-        info: ValidationInfo,
-    ) -> Self:
-        return val_set_key(cls, data, handler, info)
-
-    @model_serializer(mode="wrap")
-    def ser_set_key(
-        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-    ) -> Any:
-        return ser_set_key(self, handler, info)
 
 
 class Attachment(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
+    key: SecretBytes
     fileName: SecretString | None = None
     id: str
-    key: SecretCipherKey | None = None
     object: str
     size: int
     sizeName: str
     url: str
-
-    @model_validator(mode="wrap")
-    @classmethod
-    def val_set_key(
-        cls,
-        data: Any,
-        handler: ModelWrapValidatorHandler[Self],
-        info: ValidationInfo,
-    ) -> Self:
-        return val_set_key(cls, data, handler, info)
-
-    @model_serializer(mode="wrap")
-    def ser_set_key(
-        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-    ) -> Any:
-        return ser_set_key(self, handler, info)
 
     def download(self):
         v = self._bitwarden_client._http_client.get(self.url)
@@ -293,7 +263,7 @@ class _CipherBase(BitwardenBaseModel):
     Type: CipherType
     Name: SecretString
     CollectionIds: list[UUID]
-    key: SecretCipherKey | None = None
+    key: SecretKey | None = None
 
     organizationUseTotp: bool | None = None
     creationDate: datetime.datetime | None = None
@@ -322,7 +292,38 @@ class _CipherBase(BitwardenBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        return val_set_key(cls, data, handler, info)
+        assert isinstance(info.context, dict)
+
+        cctx: list[bytes]
+
+        if (v := info.context.get("cctx", None)) is None:
+            cctx = info.context["cctx"] = []
+        else:
+            cctx = cast(list[bytes], v)
+
+        client: "BitwardenAPIClient" = cast(
+            "BitwardenAPIClient", info.context.get("client")
+        )
+        assert client._sync and client._sync.Profile
+
+        if (o := data.get("organizationId")) is not None:
+            oid = UUID(o)
+            org: typing.Optional["ProfileOrganization"] = None
+            for org in client._sync.Profile.Organizations:
+                if oid == org.Id:
+                    assert org.Key
+                    cctx.append(org.Key)
+                    break
+            else:
+                raise ValueError(f"No organization found {oid}")
+        else:
+            assert client._connect_token
+            cctx.append(client._connect_token.Key)
+        r = val_set_key(cls, data, handler, info)
+
+        cctx.pop()
+
+        return r
 
     @model_serializer(mode="wrap")
     def ser_set_key(
@@ -927,14 +928,9 @@ class Organization(BitwardenBaseModel):
             "api/ciphers/organization-details",
             params={"organizationId": self.Id},
         )
-        org_key = self.key()
         res = ResplistBitwarden[CipherDetails].model_validate_json(
             resp.text,
-            context={
-                "parent_id": self.Id,
-                "client": self.api_client,
-                "cctx": [org_key],  # crypto context
-            },
+            context={"parent_id": self.Id, "client": self.api_client},
         )
         return res.Data
 
@@ -969,8 +965,22 @@ class Organization(BitwardenBaseModel):
 
 
 def get_organization(
-    bitwarden_client, organisation_id: UUID | str
+    bitwarden_client: "BitwardenAPIClient", organisation_id: UUID | str
 ) -> Organization:
+    if bitwarden_client._sync is not None:
+        oid = (
+            UUID(organisation_id)
+            if isinstance(organisation_id, str)
+            else organisation_id
+        )
+        for org in bitwarden_client._sync.Profile.Organizations:
+            if org.Id == oid:
+                r = Organization.model_construct(
+                    Id=org.Id, Name=org.Name, BillingEmail="", Object=""
+                )
+                r._bitwarden_client = bitwarden_client
+                return r
+
     resp = bitwarden_client.api_request(
         "GET", f"api/organizations/{organisation_id}"
     )

@@ -62,26 +62,15 @@ class BitwardenAPIClient:
             or self.connect_token.refresh_token is None
         ):
             self._set_connect_token()
-            return
-        headers = {
-            "content-type": "application/x-www-form-urlencoded; charset=utf-8",
-        }
-        payload = {
-            "grant_type": "refresh_token",
-            "refresh_token": self.connect_token.refresh_token,
-        }
-        resp = self._http_client.post(
-            "identity/connect/token", headers=headers, data=payload
-        )
-        self._connect_token = ConnectToken.model_validate_json(
-            resp.text, context={"client": self, "cctx": []}
-        )
+        else:
+            payload = {
+                "grant_type": "refresh_token",
+                "refresh_token": self.connect_token.refresh_token,
+            }
+            self._set_connect_token(payload)
 
-    def _set_connect_token(self):
-        headers = {
-            "content-type": "application/x-www-form-urlencoded; charset=utf-8",
-        }
-        payload = {
+    def _set_connect_token(self, refresh: dict | None = None):
+        payload = refresh or {
             "grant_type": "client_credentials",
             "client_secret": f"{self.client_secret}",
             "client_id": f"{self.client_id}",
@@ -90,6 +79,9 @@ class BitwardenAPIClient:
             "deviceType": 21,
             "deviceIdentifier": f"{self.device_id}",
             "deviceName": "python-vaultwarden",
+        }
+        headers = {
+            "content-type": "application/x-www-form-urlencoded; charset=utf-8",
         }
         resp = self._http_client.post(
             "identity/connect/token", headers=headers, data=payload
@@ -156,20 +148,23 @@ class BitwardenAPIClient:
 
     def sync(self, force_refresh: bool = False) -> SyncData:
         if self._sync is None or force_refresh:
-            assert (
-                self._connect_token
-                and self._connect_token.PrivateKey
-                and self._connect_token._master_key
-            )
             resp = self._api_request("GET", "api/sync")
-            self._sync = SyncData.model_validate_json(
-                resp.text,
-                context={
-                    "cctx": [
-                        self._connect_token.PrivateKey,
-                        self._connect_token._master_key,
-                    ]
-                },
+            data = resp.json()
+            v = {
+                "profile": data["profile"],
+                "ciphers": [],
+                "collections": [],
+                "folders": [],
+                "policies": [],
+                "sends": [],
+                "domains": {},
+            }
+            # populate self._sync.Profile
+            self._sync = SyncData.model_validate(v, context={"client": self})
+            # uses self._sync.Profile
+            self._sync = SyncData.model_validate(
+                data,
+                context={"client": self},
             )
         return self._sync
 
@@ -233,4 +228,6 @@ class BitwardenAPIClient:
             )
 
         resp = self._api_request("POST", path, json=data)
-        return CipherDetail.validate_json(resp.text, context={"cctx": [key]})
+        return CipherDetail.validate_json(
+            resp.text, context={"client": self, "cctx": []}
+        )

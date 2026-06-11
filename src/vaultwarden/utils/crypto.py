@@ -217,30 +217,6 @@ class NullCipher(_Cipher):
         return cls(iv), ct
 
 
-class UnimplementedError(Exception):
-    """."""
-
-
-class DecodeEncKeyError(ValueError):
-    """."""
-
-
-class WrongFormatError(DecodeEncKeyError):
-    """."""
-
-
-class WrongTypeDecryptError(DecodeEncKeyError):
-    """."""
-
-
-class MissingPartsDecryptError(DecodeEncKeyError):
-    """."""
-
-
-class B64DecryptError(DecodeEncKeyError):
-    """."""
-
-
 class DecryptError(ValueError):
     """."""
 

@@ -1,4 +1,5 @@
 import time
+import typing
 from typing import Any, Self, cast
 from uuid import UUID
 
@@ -12,6 +13,7 @@ from pydantic import (
     model_validator,
 )
 
+from vaultwarden.models.bitwarden import Login, val_set_key
 from vaultwarden.models.crypto import (
     SecretKey,
     SecretOrganizationKey,
@@ -19,7 +21,9 @@ from vaultwarden.models.crypto import (
 )
 from vaultwarden.models.enum import KdfType, VaultwardenUserStatus
 from vaultwarden.models.permissive_model import PermissiveBaseModel
-from vaultwarden.utils.crypto import SymmetricCipher
+
+if typing.TYPE_CHECKING:
+    from vaultwarden.clients.bitwarden import BitwardenAPIClient
 
 
 class ConnectToken(PermissiveBaseModel):
@@ -49,16 +53,6 @@ class ConnectToken(PermissiveBaseModel):
             now = time.time()
         return (self.expires_in is not None) and (self.expires_in <= now)
 
-    @field_validator("Key", mode="wrap")
-    @classmethod
-    def val_field_key(cls, v: str, handler: Any, info: ValidationInfo) -> str:
-        assert info and info.context
-        r = handler(v)
-
-        cctx = cast("list[bytes]", info.context["cctx"])
-        cctx.append(r)
-        return r
-
     @model_validator(mode="wrap")
     @classmethod
     def val_set_key(
@@ -84,8 +78,7 @@ class ConnectToken(PermissiveBaseModel):
             kdf=Kdf.model_validate(data),
         )
         cctx.append(master_key)
-        v = handler(data)
-        cctx.pop()  # Key
+        v = val_set_key(cls, data, handler, info)
         cctx.pop()  # master_key
         v._master_key = master_key
         return v
@@ -125,9 +118,9 @@ class UserProfile(PermissiveBaseModel):
     MasterPasswordHint: str | None = None
     Name: str | None
     Object: str | None
+    PrivateKey: SecretRSA | None
     Organizations: list[ProfileOrganization]
     Premium: bool
-    PrivateKey: SecretRSA | None
     ProviderOrganizations: list
     Providers: list
     SecurityStamp: str
@@ -138,6 +131,21 @@ class UserProfile(PermissiveBaseModel):
         validation_alias=AliasChoices("_status", "_Status"),
     )
 
+    @field_validator("Organizations", mode="wrap")
+    @classmethod
+    def val_field_Organizations(  # noqa: N802
+        cls,
+        v: str,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        assert info.context and isinstance(info.context, dict)
+        cctx: list[bytes] = cast(list["bytes"], info.context["cctx"])
+        cctx.append(info.data["PrivateKey"])
+        r = handler(v)
+        cctx.pop()
+        return r
+
     @model_validator(mode="wrap")
     @classmethod
     def val_set_key(
@@ -146,19 +154,7 @@ class UserProfile(PermissiveBaseModel):
         handler: ModelWrapValidatorHandler[Self],
         info: ValidationInfo,
     ) -> Self:
-        cctx: list[bytes]
-        key: str
-        if (key := data.get("key")) is not None:
-            context = cast("dict", info.context)
-            cctx = cast("list[bytes]", context.get("cctx"))
-            v = SymmetricCipher.decode(key, cctx[-1])
-            cctx.append(v)
-
-        r = handler(data)
-        if key:
-            cctx.pop(0)
-
-        return r
+        return val_set_key(cls, data, handler, info)
 
 
 class VaultwardenUser(UserProfile):
@@ -167,12 +163,32 @@ class VaultwardenUser(UserProfile):
     LastActive: str | None = None
 
 
-# TODO: add definition of attribute's types
 class SyncData(PermissiveBaseModel):
-    Ciphers: list[dict]
+    Profile: UserProfile
+    Ciphers: list[Login]
     Collections: list[dict]
     Domains: dict | None
     Folders: list[dict]
     Policies: list[dict]
-    Profile: UserProfile
     Sends: list[dict]
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def val_set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        assert info.context and isinstance(info.context, dict)
+        cctx: list[bytes]
+        if (v := info.context.get("cctx")) is None:
+            cctx = info.context["cctx"] = []
+        else:
+            cctx = cast(list[bytes], v)
+        client: "BitwardenAPIClient" = info.context.get("client")
+        assert client._connect_token and client._connect_token._master_key
+        cctx.append(client._connect_token._master_key)
+        r = handler(data)
+        cctx.pop()
+        return r

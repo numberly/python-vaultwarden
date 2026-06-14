@@ -201,6 +201,11 @@ class BitwardenAPIClient:
         resp = self._api_request("POST", "api/accounts/register", json=data)
         return resp.json()
 
+    def search_item(self, name):
+        for i in self._sync.Ciphers:
+            if i.uri_match(name):
+                yield i
+
     def create_item(
         self,
         item: "CipherDetails",

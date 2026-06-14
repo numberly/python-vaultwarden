@@ -1,5 +1,6 @@
 import base64
 import datetime
+from enum import IntEnum
 from functools import cached_property
 import hashlib
 import io
@@ -132,14 +133,51 @@ class BitwardenBaseModel(PermissiveBaseModel):
         return self._bitwarden_client
 
 
+class UriMatchDetection(IntEnum):
+    BASEDOMAIN = 0
+    HOST = 1
+    STARTSWITH = 2
+    EXACT = 3
+    RE = 4
+    NEVER = 5
+
+
 class UriMatch(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    match: int | None = None
+    match: UriMatchDetection | None = None
     uri: SecretString | None = None
     uriChecksum: SecretString | None = None
     response: str | None = None
+
+    def uri_match(self, name: str) -> bool:
+        import re
+        import urllib.parse
+
+        if self.uri is None:
+            return False
+        m = self.match if self.match is not None else UriMatchDetection.HOST
+        match m:
+            case UriMatchDetection.BASEDOMAIN:
+                url = urllib.parse.urlparse(name)
+                if url.hostname is None:
+                    return False
+                basename = ".".join(url.hostname.split(".")[1:])
+                hostname = urllib.parse.urlparse(self.uri).hostname
+                return hostname == basename
+            case UriMatchDetection.HOST:
+                url = urllib.parse.urlparse(self.uri)
+                hostname = urllib.parse.urlparse(name).hostname
+                return hostname == url.hostname
+            case UriMatchDetection.STARTSWITH:
+                return name.startswith(self.uri)
+            case UriMatchDetection.EXACT:
+                return name == self.uri
+            case UriMatchDetection.RE:
+                return re.match(self.uri, name) is not None
+            case UriMatchDetection.NEVER:
+                return False
 
 
 class XField(BitwardenBaseModel):
@@ -151,6 +189,14 @@ class XField(BitwardenBaseModel):
     type: int
     value: SecretString | None = None
     linkedId: str | None = None
+
+
+class PasswordChange(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    lastUsedDate: datetime.datetime
+    password: SecretString
 
 
 class CipherLogin(BitwardenBaseModel):
@@ -167,13 +213,18 @@ class CipherLogin(BitwardenBaseModel):
     username: SecretString | None = None
     Notes: SecretString | None = None
 
+    Fields: list[XField] | None = None
+    PasswordHistory: list[PasswordChange] | None = None
 
-class PasswordChange(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    def uri_match(self, name: str) -> bool:
+        if self.Uri and self.Uri == name:
+            return True
 
-    lastUsedDate: datetime.datetime
-    password: str
+        if self.Uris:
+            for um in self.Uris:
+                if um.uri_match(name):
+                    return True
+        return False
 
 
 class Fido2Credential(BitwardenBaseModel):
@@ -200,8 +251,6 @@ class LoginData(CipherLogin):
     class Config:
         extra = "forbid"
 
-    Fields: list[XField] | None = None
-    PasswordHistory: list[PasswordChange] | None = None
     response: str | None = None
     fido2Credentials: list[Fido2Credential] | None = None
 
@@ -210,8 +259,6 @@ class SecureNoteData(CipherLogin):
     class Config:
         extra = "forbid"
 
-    fields: list[XField]
-    passwordHistory: list[PasswordChange]
     response: str | None = None
     type: int | None = None
 
@@ -220,10 +267,6 @@ class SecureNoteProperty(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    name: SecretString | None = None
-    notes: SecretString | None = None
-    fields: list[XField] | None = None
-    passwordHistory: list[PasswordChange] | None = None
     response: SecretString | None = None
     type: int
 
@@ -284,6 +327,8 @@ class _CipherBase(BitwardenBaseModel):
     FolderId: UUID | None = None
     Permissions: Any | None = None
     ViewPassword: bool | None = None
+
+    Data: CipherLogin | None = None
 
     @model_validator(mode="wrap")
     @classmethod
@@ -406,6 +451,10 @@ class _CipherBase(BitwardenBaseModel):
                 )
             },
         )
+
+    def uri_match(self, name: str) -> bool:
+        assert self.Data
+        return self.Data.uri_match(name)
 
 
 class Login(_CipherBase):

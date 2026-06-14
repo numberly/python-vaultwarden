@@ -144,7 +144,7 @@ Symmetric encoded Key
 CryptoKey: TypeAlias = RSA.RsaKey | bytes
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class CryptoContext:
     client: "BitwardenAPIClient"
     parent_id: UUID | None = None

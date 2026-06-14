@@ -10,7 +10,7 @@ class TestVaultwardenModels(unittest.TestCase):
         with open(file_path, "r") as file:
             return file.read()
 
-    def _test_users(self):
+    def test_users(self):
         payload = self.read_json_payload(
             "tests/fixtures/admin/users_camel.json"
         )

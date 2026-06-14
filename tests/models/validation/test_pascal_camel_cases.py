@@ -8,6 +8,8 @@ from vaultwarden.models.bitwarden import (
 )
 from vaultwarden.models.sync import SyncData, VaultwardenUser
 
+from . import default_ctx
+
 
 class TestModelCases(unittest.TestCase):
     @staticmethod
@@ -15,24 +17,32 @@ class TestModelCases(unittest.TestCase):
         with open(file_path, "r") as file:
             return file.read()
 
-    def _test_organization(self):
+    def test_organization(self):
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/test-organization/organization_pascal.json"
         )
         camel_case_payload = self.read_json_payload(
             "tests/fixtures/test-organization/organization_camel.json"
         )
-        pascal = Organization.model_validate_json(pascal_case_payload)
-        camel = Organization.model_validate_json(camel_case_payload)
+        ctx = default_ctx()
+        pascal = Organization.model_validate_json(
+            pascal_case_payload, context=ctx
+        )
+        camel = Organization.model_validate_json(
+            camel_case_payload, context=ctx
+        )
         self.assertEqual(pascal.Name, camel.Name)
 
-    def _test_collections(self):
+    def test_collections(self):
+        ctx = default_ctx()
+        ctx.push(ctx.client._sync.Profile.Organizations[0].Key)
+
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/test-organization/collections/collections_pascal.json"
         )
         pascal_collections = (
             ResplistBitwarden[OrganizationCollection]
-            .model_validate_json(pascal_case_payload)
+            .model_validate_json(pascal_case_payload, context=ctx)
             .Data
         )
         camel_case_payload = self.read_json_payload(
@@ -40,22 +50,23 @@ class TestModelCases(unittest.TestCase):
         )
         camel_collections = (
             ResplistBitwarden[OrganizationCollection]
-            .model_validate_json(camel_case_payload)
+            .model_validate_json(camel_case_payload, context=ctx)
             .Data
         )
         self.assertEqual(len(pascal_collections), len(camel_collections))
         self.assertEqual(pascal_collections[0].Name, camel_collections[0].Name)
         self.assertEqual(pascal_collections[1].Name, camel_collections[1].Name)
 
-    def _test_sync_data(self):
+    def test_sync_data(self):
+        ctx = default_ctx()
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/test-account/sync_pascal.json"
         )
         camel_case_payload = self.read_json_payload(
             "tests/fixtures/test-account/sync_camel.json"
         )
-        pascal = SyncData.model_validate_json(pascal_case_payload)
-        camel = SyncData.model_validate_json(camel_case_payload)
+        pascal = SyncData.model_validate_json(pascal_case_payload, context=ctx)
+        camel = SyncData.model_validate_json(camel_case_payload, context=ctx)
         self.assertEqual(len(pascal.Ciphers), len(camel.Ciphers))
         self.assertEqual(len(pascal.Collections), len(camel.Collections))
         self.assertEqual(
@@ -65,7 +76,7 @@ class TestModelCases(unittest.TestCase):
             pascal.Collections[1].get("Name"), camel.Collections[1].get("name")
         )
 
-    def _test_admin_users(self):
+    def test_admin_users(self):
         pascal_case_payload = self.read_json_payload(
             "tests/fixtures/admin/users_pascal.json"
         )

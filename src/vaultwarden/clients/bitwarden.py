@@ -146,25 +146,28 @@ class BitwardenAPIClient:
     def sync(self, force_refresh: bool = False) -> SyncData:
         if self._sync is None or force_refresh:
             resp = self._api_request("GET", "api/sync")
-            data = resp.json()
-            v = {
-                "profile": data["profile"],
-                "ciphers": [],
-                "collections": [],
-                "folders": [],
-                "policies": [],
-                "sends": [],
-                "domains": {},
-            }
-            # populate self._sync.Profile
-            self._sync = SyncData.model_validate(
-                v, context=CryptoContext(client=self)
-            )
-            # uses self._sync.Profile
-            self._sync = SyncData.model_validate(
-                data,
-                context=CryptoContext(client=self),
-            )
+            return self._sync_step(resp.json())
+        return self._sync
+
+    def _sync_step(self, data: dict) -> SyncData:
+        v: dict[str, typing.Any] = {
+            "profile": data.get("profile") or data.get("Profile"),
+            "ciphers": [],
+            "collections": [],
+            "folders": [],
+            "policies": [],
+            "sends": [],
+            "domains": {},
+        }
+        # populate self._sync.Profile
+        self._sync = SyncData.model_validate(
+            v, context=CryptoContext(client=self)
+        )
+        # uses self._sync.Profile
+        self._sync = SyncData.model_validate(
+            data,
+            context=CryptoContext(client=self),
+        )
         return self._sync
 
     #    def create_organization(self, name, email=None) -> "Organization":

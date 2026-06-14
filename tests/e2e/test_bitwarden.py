@@ -8,14 +8,9 @@ from vaultwarden.models.bitwarden import (
     get_organization,
 )
 
-if os.environ.get("BITWARDEN_URL", None) is None:
-    from pathlib import Path
+from . import env_from_ci
 
-    import yaml
-
-    obj = yaml.safe_load(Path(".github/workflows/ci.yml").read_text())
-    for k, v in obj["jobs"]["test"]["steps"][-1]["env"].items():
-        os.environ[k] = v
+env_from_ci()
 
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)
@@ -49,6 +44,8 @@ client_without_mail = BitwardenAPIClient(
 
 
 class BitwardenBaseTests:
+    bitwarden: BitwardenAPIClient
+
     def setup_base(self):
         self.organization = get_organization(self.bitwarden, test_organization)
         self.test_colls_names = self.organization.collections(as_dict=True)
@@ -221,8 +218,6 @@ class BitwardenBaseTests:
             )
 
     def _test_create_attachment(self):
-        from pathlib import Path
-
         from vaultwarden.models.bitwarden import Login
 
         login: Login = next(

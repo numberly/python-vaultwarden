@@ -299,7 +299,9 @@ class _CipherBase(BitwardenBaseModel):
 
         assert ctx.client._sync and ctx.client._sync.Profile
 
-        if (o := data.get("organizationId")) is not None:
+        if (
+            o := data.get("organizationId") or data.get("OrganizationId")
+        ) is not None:
             oid = UUID(o)
             org: typing.Optional["ProfileOrganization"] = None
             for org in ctx.client._sync.Profile.Organizations:

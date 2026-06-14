@@ -108,7 +108,7 @@ class ProfileOrganization(PermissiveBaseModel):
     UseTotp: bool
 
 
-class UserProfile(PermissiveBaseModel):
+class _UserProfile(PermissiveBaseModel):
     AvatarColor: str | None
     Culture: str
     Email: str
@@ -132,6 +132,8 @@ class UserProfile(PermissiveBaseModel):
         validation_alias=AliasChoices("_status", "_Status"),
     )
 
+
+class UserProfile(_UserProfile):
     @field_validator("Organizations", mode="wrap")
     @classmethod
     def val_field_Organizations(  # noqa: N802
@@ -141,9 +143,13 @@ class UserProfile(PermissiveBaseModel):
         info: ValidationInfo,
     ) -> Self:
         ctx: CryptoContext = cast(CryptoContext, info.context)
-        ctx.push(info.data["PrivateKey"])
+        if (
+            key := info.data.get("PrivateKey") or info.data.get("privateKey")
+        ) is not None:
+            ctx.push(key)
         r = handler(v)
-        ctx.pop()
+        if key:
+            ctx.pop()
         return r
 
     @model_validator(mode="wrap")
@@ -157,10 +163,20 @@ class UserProfile(PermissiveBaseModel):
         return val_set_key(cls, data, handler, info)
 
 
-class VaultwardenUser(UserProfile):
+class VaultwardenOrganization(ProfileOrganization):
+    # overwrite
+    Key: str  # type: ignore
+
+
+class VaultwardenUser(_UserProfile):
     UserEnabled: bool
     CreatedAt: str
     LastActive: str | None = None
+
+    # overwrite
+    Key: str  # type: ignore
+    PrivateKey: str | None  # type: ignore
+    Organizations: list[VaultwardenOrganization]  # type: ignore
 
 
 class SyncData(PermissiveBaseModel):

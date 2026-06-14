@@ -10,6 +10,8 @@ from vaultwarden.models.bitwarden import (
 )
 from vaultwarden.models.crypto import CryptoContext
 
+from . import default_ctx
+
 
 class TestBitwardenModels(unittest.TestCase):
     @staticmethod
@@ -17,27 +19,28 @@ class TestBitwardenModels(unittest.TestCase):
         with open(file_path, "r") as file:
             return file.read()
 
-    def _test_organization(self):
+    def test_organization(self):
         payload = self.read_json_payload(
             "tests/fixtures/test-organization/organization_camel.json"
         )
-        data = Organization.model_validate_json(payload)
+        data = Organization.model_validate_json(
+            payload, context=CryptoContext(client=None)
+        )
         assert data.Name == "Test Organization"
 
-    def _test_organization_users(self):
+    def test_organization_users(self):
         payload = self.read_json_payload(
             "tests/fixtures/test-organization/users_camel.json"
         )
+        ctx = default_ctx()
+        ctx.parent_id = UUID("cda840d2-1de0-4f31-bd49-b30dacd7e8b0")
         users = (
             ResplistBitwarden[OrganizationUserDetails]
             .model_validate_json(
                 payload,
-                context=CryptoContext(
-                    client=None,
-                    parent_id=UUID("cda840d2-1de0-4f31-bd49-b30dacd7e8b0"),
-                ),
+                context=ctx,
             )
-            .model_validate_json(payload)
+            .model_validate_json(payload, context=ctx)
         )
         assert len(users.Data) == 2
         assert users.Data[0].Email == "test-account@example.com"

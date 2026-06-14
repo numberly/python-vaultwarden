@@ -94,7 +94,7 @@ def ser_set_key(
     slf: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
 ) -> Any:
     key: bytes | None
-    if (key := slf.key) is not None:
+    if (key := slf.Key) is not None:
         ctx: CryptoContext = cast(CryptoContext, info.context)
         ctx.push(key)
 
@@ -157,15 +157,15 @@ class CipherLogin(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    name: SecretString | None = None
+    Name: SecretString | None = None
     autofillOnPageLoad: bool | None = None
     password: SecretString | None = None
     passwordRevisionDate: datetime.datetime | None = None
     totp: str | None = None
-    uri: SecretString | None = None
-    uris: list[UriMatch] | None = None
+    Uri: SecretString | None = None
+    Uris: list[UriMatch] | None = None
     username: SecretString | None = None
-    notes: SecretString | None = None
+    Notes: SecretString | None = None
 
 
 class PasswordChange(BitwardenBaseModel):
@@ -200,8 +200,8 @@ class LoginData(CipherLogin):
     class Config:
         extra = "forbid"
 
-    fields: list[XField] | None = None
-    passwordHistory: list[PasswordChange] | None = None
+    Fields: list[XField] | None = None
+    PasswordHistory: list[PasswordChange] | None = None
     response: str | None = None
     fido2Credentials: list[Fido2Credential] | None = None
 
@@ -232,7 +232,7 @@ class AttachmentRequest(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    key: SecretBytes
+    Key: SecretBytes
     fileName: SecretString
     fileSize: int
     adminRequest: bool | None = None
@@ -242,10 +242,10 @@ class Attachment(BitwardenBaseModel):
     class Config:
         extra = "forbid"
 
-    key: SecretBytes
+    Key: SecretBytes
     fileName: SecretString | None = None
     id: str
-    object: str
+    Object: str
     size: int
     sizeName: str
     url: str
@@ -264,26 +264,26 @@ class _CipherBase(BitwardenBaseModel):
     Type: CipherType
     Name: SecretString
     CollectionIds: list[UUID]
-    key: SecretKey | None = None
+    Key: SecretKey | None = None
 
-    organizationUseTotp: bool | None = None
-    creationDate: datetime.datetime | None = None
-    deletedDate: datetime.datetime | None = None
-    fields: list[XField] | None = None
+    OrganizationUseTotp: bool | None = None
+    CreationDate: datetime.datetime | None = None
+    DeletedDate: datetime.datetime | None = None
+    Fields: list[XField] | None = None
 
-    notes: SecretString | None = None
-    reprompt: int
-    revisionDate: str
-    sshKey: str | None
-    passwordHistory: list[PasswordChange]
-    object: str | None = None
-    attachments: list[Attachment] | None = None
+    Notes: SecretString | None = None
+    Reprompt: int | None = None
+    RevisionDate: str | None = None
+    sshKey: str | None = None
+    PasswordHistory: list[PasswordChange] | None = None
+    Object: str | None = None
+    Attachments: list[Attachment] | None = None
 
-    edit: bool | None = None
-    favorite: bool | None = None
-    folderId: UUID | None = None
-    permissions: Any | None = None
-    viewPassword: bool | None = None
+    Edit: bool | None = None
+    Favorite: bool | None = None
+    FolderId: UUID | None = None
+    Permissions: Any | None = None
+    ViewPassword: bool | None = None
 
     @model_validator(mode="wrap")
     @classmethod
@@ -377,7 +377,7 @@ class _CipherBase(BitwardenBaseModel):
         key = token_bytes(64)
         ed = BinarySymmetricCipher.encode(file.read(), key)
         ar = AttachmentRequest.model_construct(
-            key=key, fileName=name, fileSize=len(ed), adminRequest=True
+            Key=key, fileName=name, fileSize=len(ed), adminRequest=True
         )
         if self.OrganizationId:
             stack = [
@@ -409,45 +409,45 @@ class _CipherBase(BitwardenBaseModel):
 class Login(_CipherBase):
     Type: Literal[CipherType.Login] = CipherType.Login
 
-    login: LoginData | None = None
-    secureNote: None = None
-    card: None = None
-    identity: None = None
+    Login: LoginData | None = None
+    SecureNote: None = None
+    Card: None = None
+    Identity: None = None
 
-    data: LoginData | None = None
+    Data: LoginData | None = None
 
 
 class SecureNote(_CipherBase):
     Type: Literal[CipherType.SecureNote]
 
-    login: None = None
-    secureNote: SecureNoteProperty | None = None
-    card: None = None
-    identity: None = None
+    Login: None = None
+    SecureNote: SecureNoteProperty | None = None
+    Card: None = None
+    Identity: None = None
 
-    data: SecureNoteData | None = None
+    Data: SecureNoteData | None = None
 
 
 class Card(_CipherBase):
     Type: Literal[CipherType.Card]
 
-    login: None = None
-    card: None = None
-    secureNote: None = None
-    identity: None = None
+    Login: None = None
+    Card: None = None
+    SecureNote: None = None
+    Identity: None = None
 
-    data: None = None
+    Data: None = None
 
 
 class Identity(_CipherBase):
     Type: Literal[CipherType.Identity]
 
-    login: None = None
-    secureNote: None = None
-    card: None = None
-    identity: None = None
+    Login: None = None
+    SecureNote: None = None
+    Card: None = None
+    Identity: None = None
 
-    data: None = None
+    Data: None = None
 
 
 CipherDetails = Annotated[

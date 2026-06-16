@@ -13,7 +13,7 @@ from pydantic import (
     model_validator,
 )
 
-from vaultwarden.models.bitwarden import Login, val_set_key
+from vaultwarden.models.bitwarden import CipherDetails, val_set_key
 from vaultwarden.models.crypto import (
     CryptoContext,
     SecretKey,
@@ -85,7 +85,7 @@ class ConnectToken(PermissiveBaseModel):
         return v
 
 
-class ProfileOrganization(PermissiveBaseModel):
+class _ProfileOrganization(PermissiveBaseModel):
     Id: UUID
     Name: str
     Key: SecretOrganizationKey | None = None
@@ -106,6 +106,18 @@ class ProfileOrganization(PermissiveBaseModel):
     UseResetPassword: bool
     UseSso: bool
     UseTotp: bool
+
+
+class ProfileOrganization(_ProfileOrganization):
+    @model_validator(mode="wrap")
+    @classmethod
+    def val_set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        return val_set_key(cls, data, handler, info)
 
 
 class _UserProfile(PermissiveBaseModel):
@@ -163,7 +175,7 @@ class UserProfile(_UserProfile):
         return val_set_key(cls, data, handler, info)
 
 
-class VaultwardenOrganization(ProfileOrganization):
+class VaultwardenOrganization(_ProfileOrganization):
     # overwrite
     Key: str  # type: ignore
 
@@ -181,7 +193,7 @@ class VaultwardenUser(_UserProfile):
 
 class SyncData(PermissiveBaseModel):
     Profile: UserProfile
-    Ciphers: list[Login]
+    Ciphers: list[CipherDetails]
     Collections: list[dict]
     Domains: dict | None
     Folders: list[dict]

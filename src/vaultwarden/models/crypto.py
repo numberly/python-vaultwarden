@@ -1,6 +1,7 @@
+from base64 import b64decode
 import dataclasses
 import typing
-from typing import Any, TypeAlias, cast
+from typing import TypeAlias, cast
 from uuid import UUID
 
 from Crypto.PublicKey import RSA
@@ -21,7 +22,7 @@ if typing.TYPE_CHECKING:
 
 
 def decode_string(
-    value: Any, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+    value: str, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
 ) -> str:
     ctx = cast(CryptoContext, info.context)
     return handler(SymmetricCipher.decode(value, ctx.stack[-1]))
@@ -50,8 +51,10 @@ def decode_bytes(
 
 
 def encode_bytes(
-    value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-) -> bytes:
+    value: bytes,
+    handler: SerializerFunctionWrapHandler,
+    info: SerializationInfo,
+) -> str:
     ctx = cast(CryptoContext, info.context)
     return handler(SymmetricCipher.encode(value, ctx.stack[-1]))
 
@@ -75,7 +78,7 @@ def encode_rsa(
     value: RSA.RsaKey,
     handler: SerializerFunctionWrapHandler,
     info: SerializationInfo,
-) -> bytes:
+) -> str:
     ctx = cast(CryptoContext, info.context)
     return handler(
         SymmetricCipher.encode(value.exportKey("DER", pkcs=8), ctx.stack[-1])
@@ -94,7 +97,7 @@ def decode_org_key(
     value: str, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
 ) -> bytes:
     ctx = cast(CryptoContext, info.context)
-    return handler(AsymmetricCipher.decode(value, ctx.stack[-1]))
+    return handler(AsymmetricCipher.decode(value, ctx.stack[-2]))
 
 
 def encode_org_key(
@@ -103,7 +106,7 @@ def encode_org_key(
     info: SerializationInfo,
 ) -> str:
     ctx = cast(CryptoContext, info.context)
-    return handler(AsymmetricCipher.encode(value, ctx.stack[-1]))
+    return handler(AsymmetricCipher.encode(value, ctx.stack[-2]))
 
 
 SecretOrganizationKey = Annotated[
@@ -125,8 +128,10 @@ def decode_key(
 
 
 def encode_key(
-    value: Any, handler: SerializerFunctionWrapHandler, info: SerializationInfo
-) -> bytes:
+    value: bytes,
+    handler: SerializerFunctionWrapHandler,
+    info: SerializationInfo,
+) -> str:
     ctx = cast(CryptoContext, info.context)
     return handler(SymmetricCipher.encode(value, ctx.stack[-2]))
 
@@ -142,6 +147,15 @@ Symmetric encoded Key
 """
 
 CryptoKey: TypeAlias = RSA.RsaKey | bytes
+
+
+def decode_rsa_public_key(
+    value: str, handler: ValidatorFunctionWrapHandler, info: ValidationInfo
+) -> RSA.RsaKey:
+    return handler(RSA.importKey(b64decode(value)))
+
+
+RSAPublicKey = Annotated[RSA.RsaKey, WrapValidator(decode_rsa_public_key)]
 
 
 @dataclasses.dataclass

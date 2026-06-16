@@ -57,6 +57,49 @@ client.set_user_enabled(user.Id, enabled=True)
 
 ### Bitwarden client
 
+#### Login/… creation & lookup
+```python
+import urllib.parse
+import secrets
+from vaultwarden.models.bitwarden import Login, LoginData, UriMatch, UriMatchDetection
+from vaultwarden.clients.bitwarden import BitwardenAPIClient
+
+bitwarden_client = BitwardenAPIClient(url="http://127.0.0.1",
+                                      email="test-account@example.com",
+                                      password="test-account",
+                                      client_id="user.a8be340c-856b-481f-8183-2b7712995da2",
+                                      client_secret="ag66paVUq4h7tBLbCbJOY5tJkQvUuT",
+                                      device_id="e54ba5f5-7d58-4830-8f2b-99194c70c14f")
+bitwarden_client.sync()
+
+# create
+uri = urllib.parse.urlparse(url:="http://username:password@login.example.org")
+key = secrets.token_bytes(64)
+
+data = LoginData.model_construct(
+    name=uri.hostname,
+    password=uri.username,
+    username=uri.password,
+    uris = [UriMatch.model_construct(match = UriMatchDetection.HOST, uri=url)]
+)
+item = Login.model_construct(
+    name=f"{uri.username}@{uri.hostname}",
+    login=data,
+    data=data,
+    key=key,
+)
+
+bitwarden_client.create_item(item, None, None)
+
+# refresh cache
+bitwarden_client.sync(force_refresh=True)
+
+# lookup
+print(list(bitwarden_client.search_items(name="login.example.")))
+print(list(bitwarden_client.search_items(uri="http://login.example.org")))
+```
+
+#### User / Org / Collection Management
 ```python
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
 from vaultwarden.models.bitwarden import Organization, OrganizationCollection, get_organization
@@ -88,6 +131,7 @@ if my_user:
     my_user.add_collections([my_coll_2.Id])
 
 ```
+
 
 ## Compatibility
 

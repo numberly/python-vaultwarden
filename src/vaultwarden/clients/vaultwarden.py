@@ -298,3 +298,18 @@ class VaultwardenAdminClient:
                     permissions=user_details.Permissions,
                 )
         self.set_user_enabled(str(user.Id), enabled=False)
+
+    # org management
+    def delete_organization(self, identifier: str | UUID) -> bool:
+        logger.info(f"Deleting {identifier} organization")
+        try:
+            self._admin_request(
+                "POST",
+                f"organizations/{identifier}/delete",
+                headers={"Content-Type": "application/json"},
+            )
+        except HTTPStatusError as e:
+            logger.warning(f"Failed to delete {identifier} {e}")
+            return False
+        logger.info(f"Successfully deleted org: {identifier}")
+        return True

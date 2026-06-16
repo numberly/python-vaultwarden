@@ -4,18 +4,23 @@ from uuid import UUID
 
 from httpx import Client, Response
 
-from vaultwarden.models.bitwarden import CipherDetail, RegisterData
+from vaultwarden.models.bitwarden import (
+    CipherDetail,
+    CipherDetails,
+    Organization,
+    OrganizationCollection,
+    OrgData,
+    RegisterData,
+)
 from vaultwarden.models.crypto import CryptoContext
 from vaultwarden.models.exception_models import BitwardenError
 from vaultwarden.models.sync import ConnectToken, SyncData
+from vaultwarden.utils.crypto import masterPasswordHash
 from vaultwarden.utils.logger import log_raise_for_status
 
 if typing.TYPE_CHECKING:
     from vaultwarden.models.bitwarden import (
-        CipherDetails,
         Kdf,
-        Organization,
-        OrganizationCollection,
     )
 
 
@@ -55,6 +60,12 @@ class BitwardenAPIClient:
     @connect_token.setter
     def connect_token(self, value: ConnectToken):
         self._connect_token = value
+
+    @property
+    def masterPasswordHash(self):  # noqa: N802
+        return masterPasswordHash(
+            self._connect_token._master_key, self.password
+        )
 
     # refresh connect token if expired
     def _refresh_connect_token(self):
@@ -170,8 +181,34 @@ class BitwardenAPIClient:
         )
         return self._sync
 
-    #    def create_organization(self, name, email=None) -> "Organization":
-    #        pass
+    def create_organization(
+        self,
+        name: str,
+        email: str,
+        default_collection_name: str = "DefaultCollection",
+    ) -> Organization:
+        if not self.connect_token:
+            raise BitwardenError("Not connected")
+        assert self._connect_token
+
+        from secrets import token_bytes
+
+        req = OrgData.model_construct(
+            Name=name,
+            BillingEmail=email,
+            CollectionName=default_collection_name,
+            PlanType=0,
+            Key=token_bytes(64),
+        )
+        ctx = CryptoContext(client=self)
+        ctx.push(self._connect_token.PrivateKey)
+        data = req.model_dump(
+            by_alias=True, exclude_none=True, exclude_unset=True, context=ctx
+        )
+        v = self.api_request("POST", "api/organizations", json=data)
+        return Organization.model_validate(
+            v.json(), context=CryptoContext(client=self)
+        )
 
     #    def get_organization(self, name) -> "Organization":
     #        pass
@@ -199,11 +236,71 @@ class BitwardenAPIClient:
             context=CryptoContext(client=self),
         )
         resp = self._api_request("POST", "api/accounts/register", json=data)
-        return resp.json()
+        #        user = self._api_request("GET", f"api/users/{email}")
+        return resp
 
-    def search_item(self, name):
+    def search_items(
+        self,
+        uri: str | None = None,
+        name: str | None = None,
+        organisations: list[Organization] | None = None,
+        collections: list[OrganizationCollection] | None = None,
+        types: list[type[CipherDetails]] | None = None,
+    ) -> typing.Generator["CipherDetails", None, None]:
+        selectors: list[typing.Callable[["CipherDetails"], bool]] = list()
+
+        if uri is not None:
+
+            def by_uri(item: CipherDetails) -> bool:
+                return item.uri_match(uri)
+
+            selectors.append(by_uri)
+
+        if name is not None:
+
+            def by_name(item: CipherDetails) -> bool:
+                return name in item.Name
+
+            selectors.append(by_name)
+
+        if organisations is not None:
+
+            def by_organisation(item: CipherDetails) -> bool:
+                return item.OrganizationId in [o.Id for o in organisations]
+
+            selectors.append(by_organisation)
+
+        if collections is not None:
+
+            def by_collection(item: CipherDetails) -> bool:
+                return (
+                    len(
+                        set(item.CollectionIds)
+                        & set([o.Id for o in collections])
+                    )
+                    > 0
+                )
+
+            selectors.append(by_collection)
+
+        if types is not None:
+
+            def by_type(item: CipherDetails) -> bool:
+                return isinstance(item, tuple(types))
+
+            selectors.append(by_type)
+
+        def select_func(item: CipherDetails) -> bool:
+            return all([selector(item) for selector in selectors])
+
+        return self.select_items(select_func)
+
+    def select_items(
+        self, select_func: typing.Callable[["CipherDetails"], bool]
+    ) -> typing.Generator["CipherDetails", None, None]:
+        assert self._sync
         for i in self._sync.Ciphers:
-            if i.uri_match(name):
+            if select_func(i):
                 yield i
 
     def create_item(

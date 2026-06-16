@@ -76,7 +76,7 @@ class AsymmetricCipher(_Cipher):
         assert isinstance(key, RSA.RsaKey)
         cipher = PKCS1_OAEP.new(key).encrypt(plainbytes)
         b64_ct = b64encode(cipher).decode()
-        return cls.ENCODING.format(cipher=cipher, b64_ct=b64_ct)
+        return cls.ENCODING.format(typ=cls.TYPE, b64_ct=b64_ct)
 
     @classmethod
     def decode(cls, data: str, key: RSA.RsaKey) -> bytes:
@@ -289,6 +289,11 @@ def stretch_key(key: bytes) -> bytes:
         )
     return stretched_key
 
+def masterPasswordHash(masterKey: bytes, password: str) -> str:
+    v = hashlib.pbkdf2_hmac(
+        "sha256", masterKey, password.encode(), 1
+    )
+    return base64.b64encode(v).decode()
 
 def gen_password(length=32, alphabet=None) -> str:  # FIXME UNUSED
     alphabet = alphabet or string.ascii_letters + string.digits

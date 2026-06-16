@@ -68,6 +68,7 @@ packages = [
 [tool.hatch.envs.test]
 dependencies = [
     "coverage",
+    "pytest"
 ]
 
 [tool.hatch.envs.test.scripts]

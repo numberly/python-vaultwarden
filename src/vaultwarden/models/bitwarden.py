@@ -33,7 +33,6 @@ from pydantic import (
     model_validator,
 )
 from pydantic_core.core_schema import (
-    FieldValidationInfo,
     SerializationInfo,
     SerializerFunctionWrapHandler,
     ValidationInfo,
@@ -329,7 +328,7 @@ class _CipherBase(BitwardenBaseModel):
 
     @field_validator("OrganizationId")
     @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
+    def set_id(cls, v, info: ValidationInfo):
         if v is None and info.context is not None:
             ctx: CryptoContext = cast(CryptoContext, info.context)
             return ctx.parent_id
@@ -542,7 +541,7 @@ class CollectionUser(CollectionAccess):
 
     @field_validator("CollectionId")
     @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
+    def set_id(cls, v, info: ValidationInfo):
         if v is None and info.context is not None:
             ctx: CryptoContext = cast(CryptoContext, info.context)
             return ctx.parent_id
@@ -559,7 +558,7 @@ class UserCollection(CollectionAccess):
 
     @field_validator("UserId")
     @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
+    def set_id(cls, v, info: ValidationInfo):
         if v is None and info.context is not None:
             ctx: CryptoContext = cast(CryptoContext, info.context)
             return ctx.parent_id
@@ -574,7 +573,7 @@ class OrganizationCollection(BitwardenBaseModel):
 
     @field_validator("OrganizationId")
     @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
+    def set_id(cls, v, info: ValidationInfo):
         if v is None and info.context is not None:
             ctx: CryptoContext = cast(CryptoContext, info.context)
             return ctx.parent_id
@@ -682,7 +681,7 @@ class OrganizationUserDetails(BitwardenBaseModel):
 
     @field_validator("OrganizationId")
     @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
+    def set_id(cls, v, info: ValidationInfo):
         if v is None and info.context is not None:
             ctx: CryptoContext = cast(CryptoContext, info.context)
             return ctx.parent_id
@@ -831,7 +830,7 @@ class Organization(BitwardenBaseModel):
 
     @field_validator("Id")
     @classmethod
-    def set_id(cls, v, info: FieldValidationInfo):
+    def set_id(cls, v, info: ValidationInfo):
         if v is None and info.context is not None:
             ctx: CryptoContext = cast(CryptoContext, info.context)
             return ctx.parent_id

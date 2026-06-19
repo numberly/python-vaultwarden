@@ -22,6 +22,7 @@ from uuid import UUID
 from Crypto.PublicKey import RSA
 from pydantic import (
     AliasChoices,
+    ConfigDict,
     Field,
     ModelWrapValidatorHandler,
     PrivateAttr,
@@ -151,8 +152,7 @@ class UriMatchDetection(IntEnum):
 
 
 class UriMatch(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     match: UriMatchDetection | None = None
     uri: SecretString | None = None
@@ -189,8 +189,7 @@ class UriMatch(BitwardenBaseModel):
 
 
 class XField(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     name: SecretString | None = None
     response: SecretString | None = None
@@ -200,16 +199,14 @@ class XField(BitwardenBaseModel):
 
 
 class PasswordChange(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     lastUsedDate: datetime.datetime
     password: SecretString
 
 
 class Fido2Credential(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     counter: SecretString | None = None
     creationDate: datetime.datetime | None = None
@@ -228,8 +225,7 @@ class Fido2Credential(BitwardenBaseModel):
 
 
 class AttachmentRequest(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     Key: SecretBytes
     fileName: SecretString
@@ -238,8 +234,7 @@ class AttachmentRequest(BitwardenBaseModel):
 
 
 class Attachment(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     Key: SecretBytes
     fileName: SecretString | None = None
@@ -255,8 +250,7 @@ class Attachment(BitwardenBaseModel):
 
 
 class _CipherBase(BitwardenBaseModel):
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
     Id: UUID | None = None
     OrganizationId: UUID | None = Field(None, validate_default=True)
@@ -1160,9 +1154,7 @@ class RegisterData(BitwardenBaseModel):
     c.f. https://bitwarden.com/help/bitwarden-security-white-paper/
     """
 
-    class Config:
-        extra = "forbid"
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
     email: str
     password: str = Field(exclude=True)
@@ -1232,9 +1224,7 @@ class OrgData(BitwardenBaseModel):
     c.f. https://github.com/dani-garcia/vaultwarden/blob/d6a3d539ed13352085ca7dfa63c49017d86c419b/src/api/core/organizations.rs#L109-L119
     """
 
-    class Config:
-        extra = "forbid"
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
     BillingEmail: str
     CollectionName: SecretString

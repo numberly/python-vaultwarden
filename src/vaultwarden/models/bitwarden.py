@@ -358,6 +358,22 @@ class _CipherBase(BitwardenBaseModel):
             json={"collectionIds": dump},
         )
 
+    def collections(self):
+        org: Organization | None = (
+            get_organization(self._bitwarden_client, self.OrganizationId)
+            if self.OrganizationId
+            else None
+        )
+        if org is None:
+            return []
+        cd: dict[UUID, OrganizationCollection] = {
+            o.Id: o for o in org.collections()
+        }
+        colls: list[OrganizationCollection] = [
+            cd[i] for i in self.CollectionIds
+        ]
+        return colls
+
     def delete(self):
         return self.api_client.api_request("DELETE", f"api/ciphers/{self.Id}")
 
@@ -410,6 +426,9 @@ class _CipherBase(BitwardenBaseModel):
 
     def uri_match(self, name: str) -> bool:
         return False
+
+    def save(self):
+        self._bitwarden_client.edit_item(self)
 
 
 class LoginData(BitwardenBaseModel):

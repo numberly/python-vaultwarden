@@ -11,6 +11,7 @@ from vaultwarden.models.bitwarden import (
     OrganizationCollection,
     OrgData,
     RegisterData,
+    get_organization,
 )
 from vaultwarden.models.crypto import CryptoContext
 from vaultwarden.models.exception_models import BitwardenError
@@ -313,9 +314,9 @@ class BitwardenAPIClient:
 
     def create_item(
         self,
-        item: "CipherDetails",
-        organization: typing.Optional["Organization"],
-        collections: list["OrganizationCollection"] | None,
+        item: CipherDetails,
+        organization: Organization,
+        collections: list[OrganizationCollection],
     ) -> "CipherDetails":
         if organization:
             assert organization and (
@@ -330,6 +331,7 @@ class BitwardenAPIClient:
                     mode="json",
                     by_alias=True,
                     context=CryptoContext(client=self, stack=[key]),
+                    exclude_none=True,
                 ),
                 "collectionIds": [str(i.Id) for i in collections],
             }
@@ -338,12 +340,30 @@ class BitwardenAPIClient:
             assert self.connect_token is not None
             key = self.connect_token.Key
             data = item.model_dump(
-                by_alias=True,
                 mode="json",
+                by_alias=True,
                 context=CryptoContext(client=self, stack=[key]),
             )
 
         resp = self._api_request("POST", path, json=data)
+        return CipherDetail.validate_json(
+            resp.text, context=CryptoContext(client=self)
+        )
+
+    def edit_item(self, item: CipherDetails) -> "CipherDetails":
+        assert self.connect_token is not None
+        path = f"/api/ciphers/{item.Id}"
+        key = (
+            self.connect_token.Key
+            if item.OrganizationId is None
+            else get_organization(self, item.OrganizationId).key()
+        )
+        data = item.model_dump(
+            mode="json",
+            by_alias=True,
+            context=CryptoContext(client=self, stack=[key]),
+        )
+        resp = self._api_request("PUT", path, json=data)
         return CipherDetail.validate_json(
             resp.text, context=CryptoContext(client=self)
         )

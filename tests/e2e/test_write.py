@@ -252,3 +252,93 @@ def test_cleanup_users(admin: VaultwardenAdminClient):
     for i in admin.users():
         if i.Email.endswith("@example.org"):
             admin.delete(i.Id)
+
+
+SEARCH_ITEMS = [
+    #            ("http://default.com", "http://default.com", None),
+    (
+        "http://sub.basedomain.com",
+        "http://basedomain.com",
+        UriMatchDetection.BASEDOMAIN,
+    ),
+    ("http://host.com/a", "http://host.com", UriMatchDetection.HOST),
+    (
+        "http://startswith.com/a/b",
+        "http://startswith.com/a",
+        UriMatchDetection.STARTSWITH,
+    ),
+    ("http://re.com", r"^http://re\.c.m", UriMatchDetection.RE),
+    ("http://exact.com", "http://exact.com", UriMatchDetection.EXACT),
+]
+
+
+@pytest.fixture(
+    params=SEARCH_ITEMS,
+    ids=[urllib.parse.urlparse(url).hostname for url, *_ in SEARCH_ITEMS],
+)
+def logins(request, test_account, organization, collection):
+    url, uri, match = request.param
+    name = urllib.parse.urlparse(url).hostname
+    data = LoginData.model_construct(
+        name=name,
+        password="test123",
+        username="test",
+        Uris=[UriMatch.model_construct(match=match, uri=uri)],
+    )
+    item = Login.model_construct(
+        name=name,
+        login=data,
+        data=data,
+        key=secrets.token_bytes(64),
+    )
+    test_account.create_item(item, organization, [collection])
+    return url, uri, match
+
+
+def test_search(
+    test_account: BitwardenAPIClient,
+    organization: Organization,
+    collection: OrganizationCollection,
+    logins,
+):
+    test_account.sync(force_refresh=True)
+    url, uri, match = logins
+
+    r = list(
+        test_account.search_items(
+            url, organisations=[organization], collections=[collection]
+        )
+    )
+    assert len(r) == 1, url
+    assert r[0].Name == urllib.parse.urlparse(url).hostname
+
+
+def test_edit(
+    test_account: BitwardenAPIClient,
+    organization: Organization,
+    collection: OrganizationCollection,
+    logins,
+):
+    test_account.sync(force_refresh=True)
+    url, uri, match = logins
+
+    r = list(
+        test_account.search_items(
+            url, organisations=[organization], collections=[collection]
+        )
+    )
+    assert len(r) == 1, url
+    assert r[0].Name == urllib.parse.urlparse(url).hostname
+    lo: Login = r[0]
+    assert lo.Login.username == "test"
+    lo.Login.username = lo.Login.password = "edit"
+    lo.save()
+    test_account.sync(force_refresh=True)
+    r = list(
+        test_account.search_items(
+            url, organisations=[organization], collections=[collection]
+        )
+    )
+    assert len(r) == 1, url
+    lo: Login = r[0]
+    assert lo.Login.username == lo.Login.password == "edit"

@@ -27,7 +27,7 @@ from vaultwarden.models.bitwarden import (
 
 
 @pytest.fixture
-def test_account() -> BitwardenAPIClient:
+def test_account():
     from . import env_from_ci
 
     env_from_ci()
@@ -53,7 +53,8 @@ def test_account() -> BitwardenAPIClient:
     )
 
     c.sync()
-    return c
+    yield c
+    c.close()
 
 
 @pytest.fixture
@@ -62,7 +63,8 @@ def admin(test_account):
     c = VaultwardenAdminClient(
         test_account.url, admin_secret_token, preload_users=False
     )
-    return c
+    yield c
+    c.close()
 
 
 @pytest.fixture

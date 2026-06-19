@@ -43,6 +43,9 @@ class VaultwardenAdminClient:
         if preload_users:
             self._load_users()
 
+    def close(self):
+        self._http_client.close()
+
     def _get_admin_cookie(self) -> Cookie | None:
         """Get the session cookie, required to authenticate requests"""
         bw_cookies = (

@@ -53,6 +53,9 @@ class BitwardenAPIClient:
         self._connect_token: ConnectToken | None = None
         self._sync: SyncData | None = None
 
+    def close(self):
+        self._http_client.close()
+
     @property
     def connect_token(self) -> ConnectToken | None:
         return self._connect_token

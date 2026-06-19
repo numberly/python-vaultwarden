@@ -31,8 +31,11 @@ def decode_string(
 def encode_string(
     value: str, handler: SerializerFunctionWrapHandler, info: SerializationInfo
 ) -> str:
+    assert info.mode == "json"
     ctx = cast(CryptoContext, info.context)
-    return handler(SymmetricCipher.encode(value.encode(), ctx.stack[-1]))
+    return handler(
+        SymmetricCipher.encode(value.encode(), ctx.stack[-1]).decode()
+    )
 
 
 SecretString = Annotated[
@@ -55,6 +58,7 @@ def encode_bytes(
     handler: SerializerFunctionWrapHandler,
     info: SerializationInfo,
 ) -> str:
+    assert info.mode == "json"
     ctx = cast(CryptoContext, info.context)
     return handler(SymmetricCipher.encode(value, ctx.stack[-1]))
 
@@ -79,6 +83,7 @@ def encode_rsa(
     handler: SerializerFunctionWrapHandler,
     info: SerializationInfo,
 ) -> str:
+    assert info.mode == "json"
     ctx = cast(CryptoContext, info.context)
     return handler(
         SymmetricCipher.encode(value.exportKey("DER", pkcs=8), ctx.stack[-1])
@@ -105,6 +110,7 @@ def encode_org_key(
     handler: SerializerFunctionWrapHandler,
     info: SerializationInfo,
 ) -> str:
+    assert info.mode == "json"
     ctx = cast(CryptoContext, info.context)
     return handler(AsymmetricCipher.encode(value, ctx.stack[-2]))
 
@@ -132,6 +138,7 @@ def encode_key(
     handler: SerializerFunctionWrapHandler,
     info: SerializationInfo,
 ) -> str:
+    assert info.mode == "json"
     ctx = cast(CryptoContext, info.context)
     return handler(SymmetricCipher.encode(value, ctx.stack[-2]))
 

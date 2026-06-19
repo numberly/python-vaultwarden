@@ -390,7 +390,8 @@ class _CipherBase(BitwardenBaseModel):
         else:
             stack = [self._bitwarden_client._connect_token._masterKey]
         ard = ar.model_dump(
-            context=CryptoContext(client=self._bitwarden_client, stack=stack)
+            mode="json",
+            context=CryptoContext(client=self._bitwarden_client, stack=stack),
         )
         v = self._bitwarden_client._api_request(
             "POST", f"api/ciphers/{self.Id}/attachment/v2", json=ard
@@ -920,6 +921,7 @@ class Organization(BitwardenBaseModel):
 
         confirm = ConfirmData.model_construct(Key=self.key())
         payload = confirm.model_dump(
+            mode="json",
             by_alias=True,
             context=CryptoContext(client=self.api_client, stack=[publicKey]),
         )
@@ -1013,7 +1015,9 @@ class Organization(BitwardenBaseModel):
     def create_collection(self, name: str) -> OrganizationCollection:
         org_key = self.key()
         data = {
-            "name": SymmetricCipher.encode(name.encode("utf-8"), org_key),
+            "name": SymmetricCipher.encode(
+                name.encode("utf-8"), org_key
+            ).decode("utf-8"),
             "groups": [],
             "users": [],
         }
@@ -1178,7 +1182,7 @@ class RegisterData(BitwardenBaseModel):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def key(self) -> str:
-        return SymmetricCipher.encode(self._rawKey, self._masterKey)
+        return SymmetricCipher.encode(self._rawKey, self._masterKey).decode()
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -1186,7 +1190,7 @@ class RegisterData(BitwardenBaseModel):
         return KeysData.model_construct(
             encryptedPrivateKey=SymmetricCipher.encode(
                 self._rawKeys.exportKey("DER", pkcs=8), self._rawKey
-            ),
+            ).decode(),
             publicKey=base64.b64encode(
                 self._rawKeys.publickey().exportKey("DER")
             ).decode(),
@@ -1238,7 +1242,7 @@ class OrgData(BitwardenBaseModel):
         return KeysData.model_construct(
             encryptedPrivateKey=SymmetricCipher.encode(
                 self._rawKeys.exportKey("DER", pkcs=8), self.Key
-            ),
+            ).decode(),
             publicKey=base64.b64encode(
                 self._rawKeys.publickey().exportKey("DER")
             ).decode(),

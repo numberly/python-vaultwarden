@@ -19,7 +19,7 @@ import typing
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.PublicKey import RSA
 from hkdf import hkdf_expand
-from typing_extensions import override
+
 
 if sys.version_info < (3, 11):
     from typing_extensions import Self
@@ -37,18 +37,11 @@ class CIPHERS(IntEnum):
     sym = 2
     asym = 4
 
-
-CACHE = {}  # type: ignore
-ENCRYPTED_STRING_RE = re.compile("^[0-9][.].*=.*", flags=re.I | re.M)
-SYM_ENCRYPTED_STRING_RE = re.compile(
-    "^2[.][^=]+=+[|][^=]+=+[|][^=]+=+", flags=re.I | re.M
-)
-
 class _Cipher:
     TYPE: int
-    ENCODING: str
+    ENCODING: bytes
     @classmethod
-    def encode(cls, plainbytes:bytes, key:bytes) -> str:
+    def encode(cls, plainbytes:bytes, key:bytes) -> bytes:
         raise NotImplementedError()
 
     @classmethod
@@ -60,7 +53,7 @@ class _Cipher:
 
 class AsymmetricCipher(_Cipher):
     TYPE = CIPHERS.asym
-    ENCODING = "{typ}.{b64_ct}"
+    ENCODING = b"%(typ)i.%(ct)b"
     @classmethod
     def _parse(cls, ct:str) -> tuple[Self, bytes]:
         return cls(), b64decode(ct)
@@ -71,12 +64,11 @@ class AsymmetricCipher(_Cipher):
         return PKCS1_OAEP.new(key).decrypt(ct)
 
     @classmethod
-    def encode(cls, plainbytes: bytes, key: RSA.RsaKey):
+    def encode(cls, plainbytes: bytes, key: RSA.RsaKey) -> bytes:
         assert isinstance(plainbytes, bytes)
         assert isinstance(key, RSA.RsaKey)
         cipher = PKCS1_OAEP.new(key).encrypt(plainbytes)
-        b64_ct = b64encode(cipher).decode()
-        return cls.ENCODING.format(typ=cls.TYPE, b64_ct=b64_ct)
+        return cls.ENCODING % {b"typ":cls.TYPE, b"ct":b64encode(cipher)}
 
     @classmethod
     def decode(cls, data: str, key: RSA.RsaKey) -> bytes:
@@ -86,7 +78,7 @@ class AsymmetricCipher(_Cipher):
 
 class SymmetricCipher(_Cipher):
     TYPE = CIPHERS.sym
-    ENCODING = "{typ}.{b64_iv}|{b64_ct}|{b64_digest}"
+    ENCODING = b"%(typ)i.%(iv)b|%(ct)b|%(digest)b"
     def __init__(self, iv:bytes, mac:bytes):
         self._iv = iv
         self._mac = mac
@@ -115,19 +107,12 @@ class SymmetricCipher(_Cipher):
 
 
     @classmethod
-    def encode(cls, plainbytes: bytes, key: bytes) -> str:
+    def encode(cls, plainbytes: bytes, key: bytes) -> bytes:
         assert isinstance(plainbytes, bytes)
         assert isinstance(key, bytes)
         # inspired from bitwarden/jslib:src/services/crypto.service.ts
-        typ = int(CIPHERS.sym)
         (iv, ct, mac) = aes_encrypt(plainbytes, key)
-        # jslib: encrypt()
-        b64_iv = b64encode(iv).decode()
-        b64_ct = b64encode(ct).decode()
-        b64_digest = ""
-        if mac:
-            b64_digest = b64encode(mac).decode()
-        return cls.ENCODING.format(typ=CIPHERS.sym, b64_iv=b64_iv, b64_ct=b64_ct, b64_digest=b64_digest)
+        return cls.ENCODING  % {b"typ":cls.TYPE, b"iv":b64encode(iv), b"ct":b64encode(ct), b"digest":b64encode(mac)}
 
     @classmethod
     def decode(cls, data: str, key: bytes) -> bytes:
@@ -155,6 +140,7 @@ class SymmetricCipher(_Cipher):
 
 
 class BinarySymmetricCipher:
+    TYPE = CIPHERS.sym
     ENCODING = b"%(typ)c%(iv)16b%(mac)32b%(ct)b"
 
     def __init__(self, iv:bytes, mac:bytes):
@@ -199,17 +185,9 @@ class BinarySymmetricCipher:
         assert isinstance(plainbytes, bytes)
         assert isinstance(key, bytes)
         # inspired from bitwarden/jslib:src/services/crypto.service.ts
-        typ = int(CIPHERS.sym)
         (iv, ct, mac) = aes_encrypt(plainbytes, key)
-        # jslib: encryptToBytes()
-        ret = chr(typ).encode()
-        ret += iv
-        if mac:
-            ret += mac
-        ret += ct
+        return cls.ENCODING % {b"typ": cls.TYPE, b"iv": iv, b"mac": mac, b"ct": ct}
 
-        assert cls.ENCODING % {b"typ": typ, b"iv": iv, b"mac": mac, b"ct": ct} == ret
-        return ret
 
 
 class NullCipher(_Cipher):

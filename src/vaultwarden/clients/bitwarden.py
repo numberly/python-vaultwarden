@@ -206,7 +206,11 @@ class BitwardenAPIClient:
         ctx = CryptoContext(client=self)
         ctx.push(self._connect_token.PrivateKey)
         data = req.model_dump(
-            by_alias=True, exclude_none=True, exclude_unset=True, context=ctx
+            mode="json",
+            by_alias=True,
+            exclude_none=True,
+            exclude_unset=True,
+            context=ctx,
         )
         v = self.api_request("POST", "api/organizations", json=data)
         return Organization.model_validate(
@@ -230,9 +234,10 @@ class BitwardenAPIClient:
             email=email,
             password=password,
             name=name,
-            **kdf.model_dump(by_alias=True),
+            **kdf.model_dump(mode="json", by_alias=True),
         )
         data = rd.model_dump(
+            mode="json",
             by_alias=True,
             exclude_none=True,
             exclude_unset=True,
@@ -322,8 +327,8 @@ class BitwardenAPIClient:
             data = {
                 "type": item.Type,
                 "cipher": item.model_dump(
-                    by_alias=True,
                     mode="json",
+                    by_alias=True,
                     context=CryptoContext(client=self, stack=[key]),
                 ),
                 "collectionIds": [str(i.Id) for i in collections],

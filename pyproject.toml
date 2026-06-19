@@ -47,6 +47,11 @@ test = [
   "pytest~=8.3",
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error"
+]
+
 [tool.hatch.version]
 path = "src/vaultwarden/__version__.py"
 

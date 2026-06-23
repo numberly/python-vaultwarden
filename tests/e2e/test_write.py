@@ -1,6 +1,8 @@
 import os
+from pathlib import Path
 import random
 import secrets
+from secrets import token_bytes
 import string
 import urllib.parse
 
@@ -236,16 +238,44 @@ def test_user(
     admin.delete(u.Id)
 
 
-def test_ciphers(
+def test_org_create_ciphers(
     test_account: BitwardenAPIClient,
     organization: Organization,
     collection: OrganizationCollection,
-    ciphers,
+    ciphers: list[CipherDetails],
 ):
     for c in ciphers:
         test_account.create_item(c, organization, [collection])
 
     organization.delete()
+
+
+@pytest.fixture(
+    params=[token_bytes(64), None],
+    ids=["with key", "without key"],
+)
+def cipher_key(request):
+    return request.param
+
+
+def test_user_create_cipher(
+    test_account: BitwardenAPIClient, login, cipher_key
+):
+    login.Key = cipher_key
+    v = test_account.create_item(login, None, None)
+    v.delete()
+
+
+def test_org_create_cipher(
+    test_account: BitwardenAPIClient,
+    login,
+    cipher_key,
+    organization,
+    collection,
+):
+    login.Key = cipher_key
+    v = test_account.create_item(login, organization, [collection])
+    v.delete()
 
 
 def test_cleanup_users(admin: VaultwardenAdminClient):
@@ -342,3 +372,21 @@ def test_edit(
     assert len(r) == 1, url
     lo: Login = r[0]
     assert lo.Login.username == lo.Login.password == "edit"
+
+
+def test_attach(
+    test_account: BitwardenAPIClient,
+    organization: Organization,
+    collection: OrganizationCollection,
+    login: Login,
+):
+    test_account.sync(force_refresh=True)
+    v = test_account.create_item(login, organization, [collection])
+    v.attach(Path(__file__))
+
+
+def test_org_clean(admin, test_account):
+    for i in test_account._sync.Profile.Organizations:
+        if i.Name.startswith("Test "):
+            continue
+        admin.delete_organization(i.Id)

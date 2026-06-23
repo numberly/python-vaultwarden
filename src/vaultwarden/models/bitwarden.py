@@ -397,7 +397,9 @@ class _CipherBase(BitwardenBaseModel):
         ar = AttachmentRequest.model_construct(
             Key=key, fileName=name, fileSize=len(ed), adminRequest=True
         )
-        if self.OrganizationId:
+        if self.Key:
+            stack = [self.Key]
+        elif self.OrganizationId:
             stack = [
                 get_organization(
                     self._bitwarden_client, self.OrganizationId

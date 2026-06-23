@@ -245,7 +245,7 @@ class Attachment(BitwardenBaseModel):
 
     def download(self):
         v = self._bitwarden_client._http_client.get(self.url)
-        return BinarySymmetricCipher.decode(v.content, self.key)
+        return BinarySymmetricCipher.decode(v.content, self.Key)
 
 
 class _CipherBase(BitwardenBaseModel):
@@ -624,9 +624,7 @@ class OrganizationCollection(BitwardenBaseModel):
             if isinstance(users[0], CollectionUser):
                 users = cast("list[CollectionUser]", users)
                 users_payload = [
-                    user.model_dump(
-                        exclude={"CollectionId"}, by_alias=True, mode="json"
-                    )
+                    user.model_dump(exclude={"CollectionId"}, mode="json")
                     for user in users
                 ]
             else:
@@ -739,7 +737,6 @@ class OrganizationUserDetails(BitwardenBaseModel):
             exclude={
                 "Permissions": self.Permissions is None,
             },
-            by_alias=True,
             mode="json",
         )
         return (
@@ -774,7 +771,6 @@ class OrganizationUserDetails(BitwardenBaseModel):
             exclude={
                 "Permissions": self.Permissions is None,
             },
-            by_alias=True,
             mode="json",
         )
         return self.api_client.api_request(
@@ -812,7 +808,6 @@ class OrganizationUserDetails(BitwardenBaseModel):
                 exclude={
                     "Permissions": self.Permissions is None,
                 },
-                by_alias=True,
                 mode="json",
             ),
         )
@@ -895,7 +890,6 @@ class Organization(BitwardenBaseModel):
                     ex: dict[str, Literal[True]] = {"UserId": True}
                     collections_payload.append(
                         coll.model_dump(
-                            by_alias=True,
                             mode="json",
                             exclude=ex,
                         )
@@ -943,7 +937,6 @@ class Organization(BitwardenBaseModel):
         confirm = ConfirmData.model_construct(Key=self.key())
         payload = confirm.model_dump(
             mode="json",
-            by_alias=True,
             context=CryptoContext(client=self.api_client, stack=[publicKey]),
         )
         resp = self.api_client.api_request(

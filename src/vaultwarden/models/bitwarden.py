@@ -265,8 +265,8 @@ class _CipherBase(BitwardenBaseModel):
 
     Notes: SecretString | None = None
     Reprompt: int | None = None
-    ArchivedDate: str | None = None
-    RevisionDate: str | None = None
+    ArchivedDate: datetime.datetime | None = None
+    RevisionDate: datetime.datetime | None = None
     sshKey: str | None = None
     Object: str | None = None
     Attachments: list[Attachment] | None = None
@@ -358,7 +358,7 @@ class _CipherBase(BitwardenBaseModel):
             json={"collectionIds": dump},
         )
 
-    def collections(self):
+    def collections(self) -> list["OrganizationCollection"]:
         org: Organization | None = (
             get_organization(self._bitwarden_client, self.OrganizationId)
             if self.OrganizationId
@@ -374,7 +374,7 @@ class _CipherBase(BitwardenBaseModel):
         ]
         return colls
 
-    def delete(self):
+    def delete(self) -> Any:
         return self.api_client.api_request("DELETE", f"api/ciphers/{self.Id}")
 
     def update_collection(self, collections: list[UUID]):
@@ -386,7 +386,7 @@ class _CipherBase(BitwardenBaseModel):
             json={"collectionIds": dump},
         )
 
-    def attach(self, path: Path):
+    def attach(self, path: Path) -> None:
         with path.open("rb") as f:
             self._attach(path.name, f)
 
@@ -466,6 +466,35 @@ class Login(_CipherBase):
         if self.Login:
             return self.Login.uri_match(name)
         return False
+
+    @property
+    def username(self) -> str | None:
+        assert self.Login
+        return self.Login.username
+
+    @username.setter
+    def username(self, value: str):
+        assert self.Login
+        self.Login.username = value
+
+    @property
+    def password(self) -> str | None:
+        assert self.Login and self.Login.password
+        return self.Login.password
+
+    @password.setter
+    def password(self, value: str):
+        assert self.Login and self.Login.password
+        hist = PasswordChange.model_construct(
+            lastUsedDate=datetime.datetime.now(), password=self.Login.password
+        )
+
+        if self.Login.PasswordHistory is None:
+            self.Login.PasswordHistory = [hist]
+        else:
+            self.Login.PasswordHistory.append(hist)
+        self.Login.passwordRevisionDate = datetime.datetime.now()
+        self.Login.password = value
 
 
 class SecureNoteData(BitwardenBaseModel):
@@ -1017,9 +1046,8 @@ class Organization(BitwardenBaseModel):
         )
         return res.Data
 
-    def collections(
-        self, force_refresh: bool = False, as_dict: bool = False
-    ) -> list[OrganizationCollection] | dict[str, OrganizationCollection]:
+    # FIXME typing
+    def collections(self, force_refresh: bool = False, as_dict: bool = False):
         if self._collections is None or force_refresh:
             self._collections = self._get_collections()
         if as_dict:

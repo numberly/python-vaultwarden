@@ -306,7 +306,7 @@ SEARCH_ITEMS = [
     params=SEARCH_ITEMS,
     ids=[urllib.parse.urlparse(url).hostname for url, *_ in SEARCH_ITEMS],
 )
-def logins(request, test_account, organization, collection):
+def logins(request, cipher_key, test_account, organization, collection):
     url, uri, match = request.param
     name = urllib.parse.urlparse(url).hostname
     data = LoginData.model_construct(
@@ -319,7 +319,7 @@ def logins(request, test_account, organization, collection):
         name=name,
         login=data,
         data=data,
-        key=secrets.token_bytes(64),
+        key=cipher_key,
     )
     test_account.create_item(item, organization, [collection])
     return url, uri, match
@@ -374,13 +374,53 @@ def test_edit(
     assert lo.Login.username == lo.Login.password == "edit"
 
 
+def test_edit_history(
+    test_account: BitwardenAPIClient,
+    organization: Organization,
+    collection: OrganizationCollection,
+    logins,
+):
+    test_account.sync(force_refresh=True)
+    url, uri, match = logins
+
+    r = list(
+        test_account.search_items(
+            url, organisations=[organization], collections=[collection]
+        )
+    )
+    assert len(r) == 1, url
+    assert r[0].Name == urllib.parse.urlparse(url).hostname
+    lo: Login = r[0]
+
+    assert lo.Login.PasswordHistory is None
+    assert lo.Login.passwordRevisionDate is None
+    assert lo.RevisionDate is not None
+
+    lo.username = lo.password = "edit"
+    lo.save()
+    test_account.sync(force_refresh=True)
+    r = list(
+        test_account.search_items(
+            url, organisations=[organization], collections=[collection]
+        )
+    )
+    assert len(r) == 1, url
+    lo: Login = r[0]
+    assert len(lo.Login.PasswordHistory) == 1
+    assert lo.Login.passwordRevisionDate is not None
+    assert lo.RevisionDate != lo.CreationDate
+    assert lo.username == "edit"
+
+
 def test_attach(
     test_account: BitwardenAPIClient,
     organization: Organization,
     collection: OrganizationCollection,
     login: Login,
+    cipher_key: bytes | None,
 ):
     test_account.sync(force_refresh=True)
+    login.Key = cipher_key
     v = test_account.create_item(login, organization, [collection])
     v.attach(Path(__file__))
 

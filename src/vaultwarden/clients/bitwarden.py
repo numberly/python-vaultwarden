@@ -1,3 +1,4 @@
+from datetime import datetime
 import typing
 from typing import Literal
 from uuid import UUID
@@ -315,9 +316,19 @@ class BitwardenAPIClient:
     def create_item(
         self,
         item: CipherDetails,
-        organization: Organization,
-        collections: list[OrganizationCollection],
+        organization: Organization | None = None,
+        collections: list[OrganizationCollection] | None = None,
     ) -> "CipherDetails":
+        item.RevisionDate = item.CreationDate = datetime.now()
+        return self._create_item(item, organization, collections)
+
+    def _create_item(
+        self,
+        item: CipherDetails,
+        organization: Organization | None = None,
+        collections: list[OrganizationCollection] | None = None,
+    ) -> "CipherDetails":
+        #        item.Key   = None
         if organization:
             assert organization and (
                 collections is not None and len(collections)
@@ -351,6 +362,10 @@ class BitwardenAPIClient:
         )
 
     def edit_item(self, item: CipherDetails) -> "CipherDetails":
+        item.RevisionDate = datetime.now()
+        return self._edit_item(item)
+
+    def _edit_item(self, item: CipherDetails) -> "CipherDetails":
         assert self.connect_token is not None
         path = f"/api/ciphers/{item.Id}"
         key = (

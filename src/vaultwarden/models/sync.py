@@ -1,6 +1,7 @@
+import datetime
 import sys
 import time
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import UUID
 
 from pydantic import (
@@ -19,6 +20,7 @@ from vaultwarden.models.crypto import (
     SecretKey,
     SecretOrganizationKey,
     SecretRSA,
+    SecretString,
 )
 from vaultwarden.models.enum import KdfType, VaultwardenUserStatus
 from vaultwarden.models.permissive_model import PermissiveBaseModel
@@ -191,12 +193,50 @@ class VaultwardenUser(_UserProfile):
     Organizations: list[VaultwardenOrganization]  # type: ignore
 
 
+class CollectionDetail(PermissiveBaseModel):
+    Id: UUID | None = None
+    ExternalId: str | None = None
+    OrganizationId: UUID | None = None
+    Name: SecretString
+    Manage: bool | None = None
+    Object: Literal["collectionDetails"]
+    ReadOnly: bool | None = None
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def val_set_key(
+        cls,
+        data: Any,
+        handler: ModelWrapValidatorHandler[Self],
+        info: ValidationInfo,
+    ) -> Self:
+        ctx: CryptoContext = cast(CryptoContext, info.context)
+
+        org = next(
+            ctx.client.select_organizations(
+                Id=data.get("organizationId") or data.get("OrganizationId")
+            )
+        )
+        assert org.Key
+        ctx.push(org.Key)
+        r = handler(data)
+        ctx.pop()
+        return r
+
+
+class Folder(PermissiveBaseModel):
+    Id: UUID | None = None
+    Name: str | None = None
+    object: Literal["folder"]
+    revisionDate: datetime.datetime | None = None
+
+
 class SyncData(PermissiveBaseModel):
     Profile: UserProfile
     Ciphers: list[CipherDetails]
-    Collections: list[dict]
+    Collections: list[CollectionDetail]
     Domains: dict | None
-    Folders: list[dict]
+    Folders: list[Folder]
     Policies: list[dict]
     Sends: list[dict]
 

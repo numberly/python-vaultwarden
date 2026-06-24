@@ -69,12 +69,8 @@ class TestModelCases(unittest.TestCase):
         camel = SyncData.model_validate_json(camel_case_payload, context=ctx)
         self.assertEqual(len(pascal.Ciphers), len(camel.Ciphers))
         self.assertEqual(len(pascal.Collections), len(camel.Collections))
-        self.assertEqual(
-            pascal.Collections[0].get("Name"), camel.Collections[0].get("name")
-        )
-        self.assertEqual(
-            pascal.Collections[1].get("Name"), camel.Collections[1].get("name")
-        )
+        self.assertEqual(pascal.Collections[0].Name, camel.Collections[0].Name)
+        self.assertEqual(pascal.Collections[1].Name, camel.Collections[1].Name)
 
     def test_admin_users(self):
         pascal_case_payload = self.read_json_payload(

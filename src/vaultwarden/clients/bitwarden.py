@@ -1,6 +1,7 @@
 from datetime import datetime
 import typing
 from typing import Literal
+import uuid
 from uuid import UUID
 
 from httpx import Client, Response
@@ -24,6 +25,7 @@ if typing.TYPE_CHECKING:
     from vaultwarden.models.bitwarden import (
         Kdf,
     )
+    from vaultwarden.models.sync import ProfileOrganization
 
 
 class BitwardenAPIClient:
@@ -219,8 +221,17 @@ class BitwardenAPIClient:
             v.json(), context=CryptoContext(client=self)
         )
 
-    #    def get_organization(self, name) -> "Organization":
-    #        pass
+    def select_organizations(
+        self,
+        Id: str | uuid.UUID | None = None,  # noqa: N803
+    ) -> typing.Generator["ProfileOrganization", None, None]:
+        assert self._sync and self._sync.Profile
+        if Id is not None:
+            id_ = uuid.UUID(Id) if isinstance(Id, str) else Id
+            for org in self._sync.Profile.Organizations:
+                if org.Id == id_:
+                    yield org
+        raise StopIteration
 
     def create_user(
         self,

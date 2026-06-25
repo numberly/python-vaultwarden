@@ -47,6 +47,11 @@ test = [
   "pytest~=8.3",
 ]
 
+[tool.pytest.ini_options]
+filterwarnings = [
+    "error"
+]
+
 [tool.hatch.version]
 path = "src/vaultwarden/__version__.py"
 
@@ -68,6 +73,7 @@ packages = [
 [tool.hatch.envs.test]
 dependencies = [
     "coverage",
+    "pytest"
 ]
 
 [tool.hatch.envs.test.scripts]

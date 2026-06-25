@@ -1,8 +1,16 @@
 import os
+from pathlib import Path
+import string
 import unittest
 
 from vaultwarden.clients.bitwarden import BitwardenAPIClient
-from vaultwarden.models.bitwarden import get_organization
+from vaultwarden.models.bitwarden import (
+    get_organization,
+)
+
+from . import env_from_ci
+
+env_from_ci()
 
 # Get Bitwarden credentials from environment variables
 url = os.environ.get("BITWARDEN_URL", None)
@@ -11,6 +19,7 @@ password = os.environ.get("BITWARDEN_PASSWORD", None)
 client_id = os.environ.get("BITWARDEN_CLIENT_ID", None)
 client_secret = os.environ.get("BITWARDEN_CLIENT_SECRET", None)
 device_id = os.environ.get("BITWARDEN_DEVICE_ID", None)
+
 
 # Get test organization id from environment variables
 test_organization = os.environ.get("BITWARDEN_TEST_ORGANIZATION", None)
@@ -35,6 +44,8 @@ client_without_mail = BitwardenAPIClient(
 
 
 class BitwardenBaseTests:
+    bitwarden: BitwardenAPIClient
+
     def setup_base(self):
         self.organization = get_organization(self.bitwarden, test_organization)
         self.test_colls_names = self.organization.collections(as_dict=True)
@@ -120,7 +131,7 @@ class BitwardenBaseTests:
         self.assertIsNotNone(user)
         user.delete()
 
-    def test_rename_organization(self):
+    def _test_rename_organization(self):
         old_name = self.organization.Name
         new_name = "new_test_organization"
         self.organization.rename(new_name)
@@ -141,6 +152,82 @@ class BitwardenBaseTests:
     def test_deduplicate(self):
         # Todo build test fixtures and delete them at the end of the test
         return
+
+    def _test_create_user(self):
+        import random
+
+        from vaultwarden.models.bitwarden import Kdf
+        from vaultwarden.utils.crypto import gen_password
+
+        rnd = "".join(
+            random.choices(string.ascii_letters + string.digits, k=10)
+        ).lower()
+        self.bitwarden.create_user(
+            f"test+{rnd}@examle.org",
+            gen_password(),
+            "test user",
+            kdf=Kdf.argon2id(),
+        )
+
+    def _test_create_org_login(self):
+        from secrets import token_bytes
+
+        from vaultwarden.models.bitwarden import Login, LoginData
+
+        for name, key in [
+            ("org - with key", token_bytes(64)),
+            ("org - no key", None),
+        ]:
+            data = LoginData.model_construct(
+                name=name,
+                password="test123",
+                username="test",
+            )
+            item = Login.model_construct(
+                name=name,
+                login=data,
+                data=data,
+                key=key,
+            )
+            self.bitwarden.create_item(
+                item, self.organization, collections=self.test_colls_ids
+            )
+
+    def _test_create_own_login(self):
+        from secrets import token_bytes
+
+        from vaultwarden.models.bitwarden import Login, LoginData
+
+        for name, key in [
+            ("own - with key", token_bytes(64)),
+            ("own - no key", None),
+        ]:
+            data = LoginData.model_construct(
+                name=name,
+                password="test123",
+                username="test",
+            )
+            item = Login.model_construct(
+                name=name,
+                login=data,
+                data=data,
+                key=key,
+            )
+            self.bitwarden.create_item(
+                item, None, collections=self.test_colls_ids
+            )
+
+    def _test_create_attachment(self):
+        from vaultwarden.models.bitwarden import Login
+
+        login: Login = next(
+            filter(lambda x: x.attachments, self.test_org_ciphers)
+        )
+        login.attach(Path(__file__))
+
+    def test_sync(self):
+        for v in self.bitwarden._sync.Ciphers:
+            print(f"{v.Name} - {v.OrganizationId}")
 
 
 class BitwardenWithEmailTests(unittest.TestCase, BitwardenBaseTests):

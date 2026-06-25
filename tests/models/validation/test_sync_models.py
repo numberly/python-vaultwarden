@@ -2,6 +2,8 @@ import unittest
 
 from vaultwarden.models.sync import SyncData
 
+from . import default_ctx
+
 
 class TestSyncModels(unittest.TestCase):
     @staticmethod
@@ -13,7 +15,9 @@ class TestSyncModels(unittest.TestCase):
         payload = self.read_json_payload(
             "tests/fixtures/test-account/sync_camel.json"
         )
-        data = SyncData.model_validate_json(payload)
+        ctx = default_ctx()
+
+        data = SyncData.model_validate_json(payload, context=ctx)
         assert len(data.Ciphers) == 2
         assert len(data.Collections) == 3
         assert len(data.Profile.Organizations) == 1

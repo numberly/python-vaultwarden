@@ -226,7 +226,7 @@ class CollectionDetail(PermissiveBaseModel):
 
 class Folder(PermissiveBaseModel):
     Id: UUID | None = None
-    Name: str | None = None
+    Name: SecretString | None = None
     object: Literal["folder"]
     revisionDate: datetime.datetime | None = None
 
@@ -257,3 +257,12 @@ class SyncData(PermissiveBaseModel):
         r = handler(data)
         ctx.pop()
         return r
+
+    @field_validator("Profile", mode="after")
+    @classmethod
+    def val_set_Profile_Key(  # noqa: N802
+        cls, data: UserProfile, info: ValidationInfo[Self]
+    ):
+        ctx: CryptoContext = cast(CryptoContext, info.context)
+        ctx.push(data.Key)
+        return data

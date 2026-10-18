@@ -186,6 +186,36 @@ class SecureNoteProperty(BitwardenBaseModel):
     type: int
 
 
+class IdentityData(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    middleName: str | None = None
+    address1: str | None = None
+    address2: str | None = None
+    city: str | None = None
+    state: str | None = None
+    postalCode: str | None = None
+    country: str | None = None
+    company: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    ssn: str | None = None
+    nationality: str | None = None
+    citizenId: str | None = None
+    licenseNumber: str | None = None
+    passportNumber: str | None = None
+
+
+class SshKeyData(BitwardenBaseModel):
+    class Config:
+        extra = "forbid"
+
+    keyFingerprint: Annotated[str, WrapValidator(decode_string)] | None = None
+    privateKey: Annotated[str, WrapValidator(decode_string)] | None = None
+    publicKey: Annotated[str, WrapValidator(decode_string)] | None = None
+
+
 class Attachment(BitwardenBaseModel):
     class Config:
         extra = "forbid"
@@ -220,8 +250,11 @@ class _CipherBase(BitwardenBaseModel):
     notes: Annotated[str, WrapValidator(decode_string)] | None = None
     reprompt: int
     revisionDate: str
-    sshKey: str | None
+    sshKey: SshKeyData | None = None
     passwordHistory: list[PasswordChange]
+    bankAccount: dict | None = None
+    driversLicense: dict | None = None
+    passport: dict | None = None
     object: str | None = None
     attachments: list[Attachment] | None = None
 
@@ -331,11 +364,22 @@ class Identity(_CipherBase):
     card: None = None
     identity: None = None
 
+    data: IdentityData | None = None
+
+
+class SshKeyCipher(_CipherBase):
+    Type: Literal[CipherType.SshKey]
+
+    login: None = None
+    secureNote: None = None
+    card: None = None
+    identity: None = None
+
     data: None = None
 
 
 CipherDetails = Annotated[
-    Union[Login, SecureNote, Card, Identity], Field(discriminator="Type")
+    Union[Login, SecureNote, Card, Identity, SshKeyCipher], Field(discriminator="Type")
 ]
 
 
